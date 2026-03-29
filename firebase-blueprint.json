@@ -1,0 +1,91 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and role information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "User's full name" },
+        "email": { "type": "string", "format": "email", "description": "User's email address" },
+        "role": { "type": "string", "enum": ["admin", "beekeeper"], "description": "User's role in the system" },
+        "status": { "type": "string", "enum": ["pending", "approved"], "description": "Account approval status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" }
+      },
+      "required": ["uid", "email", "role", "status"]
+    },
+    "Hive": {
+      "title": "Hive",
+      "description": "A single beehive in an apiary.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique hive identifier (e.g., HV-204-A)" },
+        "name": { "type": "string", "description": "Descriptive name of the hive" },
+        "apiary": { "type": "string", "description": "Apiary name or location" },
+        "status": { "type": "string", "enum": ["active", "harvested", "relocated"], "description": "Current status of the hive" },
+        "health": { "type": "number", "description": "Colony health percentage (0-100)" },
+        "temp": { "type": "number", "description": "Current internal temperature in Celsius" },
+        "humidity": { "type": "number", "description": "Current internal humidity percentage" },
+        "lastHarvest": { "type": "string", "format": "date-time", "description": "Timestamp of the last honey harvest" },
+        "location": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } }
+      },
+      "required": ["id", "name", "status", "health"]
+    },
+    "Inspection": {
+      "title": "Inspection",
+      "description": "Record of a hive inspection.",
+      "type": "object",
+      "properties": {
+        "hiveId": { "type": "string", "description": "ID of the hive inspected" },
+        "inspectorUid": { "type": "string", "description": "UID of the beekeeper" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Time of inspection" },
+        "queenSpotted": { "type": "boolean", "description": "Whether the queen was seen" },
+        "broodFrames": { "type": "number", "description": "Number of frames with brood" },
+        "miteCount": { "type": "number", "description": "Mites per 100 bees" },
+        "aggression": { "type": "string", "enum": ["low", "medium", "high"], "description": "Colony aggression level" },
+        "notes": { "type": "string", "description": "Voice-transcribed or manual notes" },
+        "audioUrl": { "type": "string", "description": "URL to the recorded audio log" }
+      },
+      "required": ["hiveId", "inspectorUid", "timestamp"]
+    },
+    "Harvest": {
+      "title": "Harvest",
+      "description": "Record of a honey harvest batch.",
+      "type": "object",
+      "properties": {
+        "batchId": { "type": "string", "description": "Unique batch ID (e.g., #WF-2024-082)" },
+        "hiveId": { "type": "string", "description": "Source hive ID" },
+        "apiary": { "type": "string", "description": "Origin apiary" },
+        "quantity": { "type": "number", "description": "Honey weight in kg" },
+        "floraType": { "type": "string", "description": "Primary nectar source" },
+        "purity": { "type": "number", "description": "Purity percentage" },
+        "moisture": { "type": "number", "description": "Moisture percentage" },
+        "terroir": { "type": "string", "description": "Environmental characteristics" },
+        "hash": { "type": "string", "description": "Blockchain certification hash" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Time of harvest" }
+      },
+      "required": ["batchId", "hiveId", "quantity", "timestamp"]
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "Priority alert for hive maintenance.",
+      "type": "object",
+      "properties": {
+        "hiveId": { "type": "string", "description": "Hive ID related to the alert" },
+        "type": { "type": "string", "enum": ["temp_spike", "treatment_due", "low_battery"], "description": "Type of alert" },
+        "message": { "type": "string", "description": "Alert description" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Time of alert" },
+        "priority": { "type": "string", "enum": ["high", "medium", "low"], "description": "Alert priority level" },
+        "resolved": { "type": "boolean", "description": "Whether the alert has been addressed" }
+      },
+      "required": ["type", "message", "timestamp", "priority"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "User profiles" },
+    "/hives/{hiveId}": { "schema": "Hive", "description": "Hive records" },
+    "/inspections/{inspectionId}": { "schema": "Inspection", "description": "Inspection logs" },
+    "/harvests/{harvestId}": { "schema": "Harvest", "description": "Harvest batches" },
+    "/alerts/{alertId}": { "schema": "Alert", "description": "System alerts" }
+  }
+}

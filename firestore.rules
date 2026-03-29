@@ -1,0 +1,156 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - Firebase Auth UID
+    //   - displayName: string (optional) - User's full name
+    //   - email: string (required, email) - User's email address
+    //   - role: string (required, enum: ['admin', 'beekeeper']) - User's role
+    //   - status: string (required, enum: ['pending', 'approved']) - Account status
+    //   - createdAt: timestamp (optional) - Account creation timestamp
+    //
+    // Collection: hives
+    // Document ID: {hiveId}
+    // Fields:
+    //   - id: string (required) - Unique hive identifier
+    //   - name: string (required) - Descriptive name
+    //   - apiary: string (optional) - Apiary name
+    //   - status: string (required, enum: ['active', 'harvested', 'relocated']) - Status
+    //   - health: number (required, 0-100) - Colony health
+    //   - temp: number (optional) - Current temperature
+    //   - humidity: number (optional) - Current humidity
+    //   - lastHarvest: timestamp (optional) - Last harvest time
+    //   - location: map (optional) - {lat, lng}
+    //
+    // Collection: inspections
+    // Document ID: {inspectionId}
+    // Fields:
+    //   - hiveId: string (required) - ID of the hive inspected
+    //   - inspectorUid: string (required) - UID of the beekeeper
+    //   - timestamp: timestamp (required) - Time of inspection
+    //   - queenSpotted: bool (optional) - Queen seen
+    //   - broodFrames: number (optional) - Frames with brood
+    //   - miteCount: number (optional) - Mites per 100 bees
+    //   - aggression: string (optional, enum: ['low', 'medium', 'high']) - Aggression
+    //   - notes: string (optional) - Notes
+    //
+    // Collection: harvests
+    // Document ID: {harvestId}
+    // Fields:
+    //   - batchId: string (required) - Unique batch ID
+    //   - hiveId: string (required) - Source hive ID
+    //   - quantity: number (required) - Honey weight in kg
+    //   - floraType: string (optional) - Nectar source
+    //   - hash: string (optional) - Blockchain hash
+    //   - timestamp: timestamp (required) - Time of harvest
+    //
+    // Collection: alerts
+    // Document ID: {alertId}
+    // Fields:
+    //   - hiveId: string (optional) - Hive ID
+    //   - type: string (required, enum: ['temp_spike', 'treatment_due', 'low_battery']) - Type
+    //   - message: string (required) - Description
+    //   - timestamp: timestamp (required) - Time of alert
+    //   - priority: string (required, enum: ['high', 'medium', 'low']) - Priority
+    //   - resolved: bool (optional) - Resolved status
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         ((request.auth.token.email == "benitaissac0505@gmail.com" || request.auth.token.email == "hivemanage785@gmail.com") && request.auth.token.email_verified == true));
+    }
+    
+    function isApproved() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'approved' || isAdmin());
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'status']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             data.role in ['admin', 'beekeeper'] &&
+             data.status in ['pending', 'approved'] &&
+             (data.role == 'beekeeper' || isAdmin()); // Only admin can create admin
+    }
+
+    function isValidHive(data) {
+      return data.keys().hasAll(['id', 'name', 'status', 'health']) &&
+             data.id is string && data.id.size() < 50 &&
+             data.name is string && data.name.size() < 100 &&
+             data.status in ['active', 'harvested', 'relocated'] &&
+             data.health is number && data.health >= 0 && data.health <= 100;
+    }
+
+    function isValidInspection(data) {
+      return data.keys().hasAll(['hiveId', 'inspectorUid', 'timestamp']) &&
+             data.hiveId is string &&
+             data.inspectorUid == request.auth.uid &&
+             data.timestamp is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role && request.resource.data.status == resource.data.status);
+    }
+
+    match /hives/{hiveId} {
+      allow read: if isApproved();
+      allow create, update: if isAdmin() && isValidHive(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /inspections/{inspectionId} {
+      allow read: if isApproved();
+      allow create: if isApproved() && isValidInspection(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /harvests/{harvestId} {
+      allow read: if isApproved();
+      allow create: if isApproved() && request.resource.data.keys().hasAll(['batchId', 'hiveId', 'quantity', 'timestamp']);
+      allow update, delete: if isAdmin();
+    }
+
+    match /alerts/{alertId} {
+      allow read: if isApproved();
+      allow create: if isAuthenticated(); // System or user can create
+      allow update: if isApproved();
+      allow delete: if isAdmin();
+    }
+  }
+}
