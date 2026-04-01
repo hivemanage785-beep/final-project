@@ -82,8 +82,7 @@ service cloud.firestore {
     }
     
     function isApproved() {
-      return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'approved' || isAdmin());
+      return isAuthenticated();
     }
 
     function isValidEmail(email) {
@@ -99,7 +98,7 @@ service cloud.firestore {
              data.uid == request.auth.uid &&
              isValidEmail(data.email) &&
              data.role in ['admin', 'beekeeper'] &&
-             data.status in ['pending', 'approved'] &&
+             data.status == 'approved' &&
              (data.role == 'beekeeper' || isAdmin()); // Only admin can create admin
     }
 

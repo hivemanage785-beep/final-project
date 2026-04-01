@@ -89,7 +89,7 @@ export default function App() {
               displayName: firebaseUser.displayName || 'New Beekeeper',
               email: firebaseUser.email || '',
               role: (isAdmin ? 'admin' : 'beekeeper') as 'admin' | 'beekeeper',
-              status: (isAdmin ? 'approved' : 'pending') as 'approved' | 'pending',
+              status: 'approved' as 'approved' | 'pending',
               hasSeenTour: false,
               createdAt: Date.now(),
               updatedAt: Date.now(),
@@ -111,7 +111,7 @@ export default function App() {
 
   if (loading) return <LoadingScreen />;
   if (!user) return <AuthScreen onLogin={handleLogin} isLoggingIn={isLoggingIn} />;
-  if (profile?.status === 'pending') return <PendingApproval onLogout={handleLogout} />;
+
 
   return profile?.role === 'admin' 
     ? <AdminExperience user={user} profile={profile} onLogout={handleLogout} /> 
