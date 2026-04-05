@@ -1,4 +1,9 @@
 import { ContactRequest } from '../models/ContactRequest.js';
+import { Farmer } from '../models/Farmer.js';
+
+/**
+ * ── CONTACT REQUESTS ──────────────────────────────────────────────────────────
+ */
 
 export async function getPendingRequests(req, res, next) {
   try {
@@ -7,15 +12,7 @@ export async function getPendingRequests(req, res, next) {
       .sort({ created_at: -1 })
       .limit(100);
 
-    const data = requests.map(r => ({
-      request_id: r.request_id,
-      requester_id: r.requester_id,
-      farmer_id: r.farmer_id,
-      status: r.status,
-      created_at: r.created_at
-    }));
-
-    res.status(200).json({ success: true, data });
+    res.status(200).json({ success: true, data: requests });
   } catch (error) {
     next(error);
   }
@@ -23,7 +20,7 @@ export async function getPendingRequests(req, res, next) {
 
 export async function approveRequest(req, res, next) {
   try {
-    const { id } = req.params; // this is request_id UUID
+    const { id } = req.params; 
     const admin_id = req.user.id;
 
     const request = await ContactRequest.findOneAndUpdate(
@@ -37,30 +34,87 @@ export async function approveRequest(req, res, next) {
     );
 
     if (!request) {
-      return res.status(404).json({ success: false, message: 'Request not found' });
+      return res.status(404).json({ success: false, error: 'Request not found' });
     }
 
-    res.status(200).json({ success: true, message: 'Request approved successfully', data: request });
+    res.status(200).json({ success: true, data: request });
   } catch (error) {
     next(error);
   }
 }
 
-export async function rejectRequest(req, res, next) {
-  try {
-    const { id } = req.params; // this is request_id UUID
-    
-    const request = await ContactRequest.findOneAndUpdate(
-      { request_id: id },
-      { status: 'rejected' },
-      { new: true }
-    );
+/**
+ * ── FARMER MANAGEMENT ─────────────────────────────────────────────────────────
+ */
 
-    if (!request) {
-      return res.status(404).json({ success: false, message: 'Request not found' });
+export async function getAllFarmers(req, res, next) {
+  try {
+    const farmers = await Farmer.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: farmers });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateFarmerStatus(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!['approved', 'pending', 'rejected'].includes(status)) {
+        return res.status(400).json({ success: false, error: 'Invalid status' });
     }
 
-    res.status(200).json({ success: true, message: 'Request rejected successfully', data: request });
+    const farmer = await Farmer.findByIdAndUpdate(id, { status }, { new: true });
+    if (!farmer) return res.status(404).json({ success: false, error: 'Farmer not found' });
+
+    res.status(200).json({ success: true, data: farmer });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteFarmer(req, res, next) {
+  try {
+    const { id } = req.params;
+    const deleted = await Farmer.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ success: false, error: 'Farmer not found' });
+    
+    res.status(200).json({ success: true, message: 'Farmer deleted' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * ── BEEKEEPER VERIFICATION ───────────────────────────────────────────────────
+ */
+
+export async function getAllBeekeepers(req, res, next) {
+  try {
+    const { User } = await import('../models/User.js');
+    const beekeepers = await User.find({ role: 'beekeeper' }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: beekeepers });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function verifyBeekeeper(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { isVerified } = req.body;
+    const { User } = await import('../models/User.js');
+    
+    const beekeeper = await User.findByIdAndUpdate(
+      id, 
+      { isVerified }, 
+      { new: true }
+    );
+    
+    if (!beekeeper) return res.status(404).json({ success: false, error: 'Beekeeper not found' });
+    
+    res.status(200).json({ success: true, data: beekeeper });
   } catch (error) {
     next(error);
   }

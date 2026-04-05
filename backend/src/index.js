@@ -48,6 +48,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now(), env: process.env.NODE_ENV || 'development' });
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({ success: true, status: 'ok', timestamp: Date.now() });
+});
+
 // Public routes (no auth required)
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/score', scoreRouter);

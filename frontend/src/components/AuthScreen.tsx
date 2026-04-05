@@ -22,6 +22,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSignIn }) => {
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
           Sign in with Google
         </button>
+
+        <div className="mt-6 pt-6 border-t border-gray-100 w-full">
+          <a href="/admin" className="text-sm font-medium text-gray-500 hover:text-[#5D0623] hover:underline underline-offset-4 transition-colors">
+            Access Admin Portal &rarr;
+          </a>
+        </div>
       </div>
     </div>
   );

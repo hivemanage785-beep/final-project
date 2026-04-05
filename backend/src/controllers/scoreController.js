@@ -12,28 +12,17 @@ export async function scoreController(req, res, next) {
     const { lat: tileLat, lng: tileLng } = toTileCoords(lat, lng);
 
     // ─── READ-ONLY: fetch from precomputed GeoTile ───────────────────────────
-    let tile = null;
+    const tile = await GeoTile.findOne({ tileKey }).lean();
 
-    if (!global.IS_MOCKED_DB) {
-      tile = await GeoTile.findOne({ tileKey }).lean();
-    }
-
-    // ─── TILE MISSING: return explicit error (no external calls) ─────────────
+    // ─── TILE MISSING: return explicit error ─────────────────────────────────
     if (!tile || tile.ttlExpires < new Date()) {
       logger.warn(`[Score] Tile not ready for ${tileKey} — returning DATA_NOT_READY`);
-
-      // In mock/dev mode, fall back through to live calls for local DX
-      if (!global.IS_MOCKED_DB) {
-        return res.status(503).json({
-          success: false,
-          error: 'DATA_NOT_READY',
-          message: 'Tile data is being precomputed. Try again shortly.',
-          tileKey
-        });
-      }
-
-      // Dev/mock mode: still run live (so local dev works without scheduler)
-      return await liveScoreFallback(req, res, next, lat, lng, month);
+      return res.status(503).json({
+        success: false,
+        error: 'DATA_NOT_READY',
+        message: 'Tile data is being precomputed. Try again shortly.',
+        tileKey
+      });
     }
 
     // ─── TILE FRESH: compose response from precomputed data ──────────────────

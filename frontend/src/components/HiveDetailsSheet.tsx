@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { BottomSheet } from './BottomSheet';
 import { Hive, Inspection, db } from '../lib/db';
-import { Settings, CheckSquare, Activity, MapPin, Search } from 'lucide-react';
+import { Settings, CheckSquare, Activity, MapPin, Search, QrCode, ExternalLink } from 'lucide-react';
 import { useSync } from '../hooks/useSync';
 import { useAuth } from '../hooks/useAuth';
 import { InspectionTimeline } from './InspectionTimeline';
+import { QRCode } from './QRCode';
 
 interface HiveDetailsSheetProps {
   hive: Hive | null;
@@ -132,6 +133,25 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
                   <p className="text-sm text-gray-700 mt-1">{hive.notes}</p>
                </div>
             )}
+
+            {/* QR Traceability Code */}
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3 text-gray-800 font-bold text-sm">
+                <QrCode size={16} className="text-[#5D0623]" /> Hive Traceability QR
+              </div>
+              <div className="flex items-center gap-4">
+                <QRCode value={`${window.location.origin}/trace/${hive.id}`} size={96} />
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500 mb-2">Scan to view hive data publicly. Attach this QR to the physical hive box.</p>
+                  <button 
+                    onClick={() => window.open(`/trace/${hive.id}`, '_blank')}
+                    className="flex items-center gap-1 text-xs font-bold text-[#5D0623] hover:underline"
+                  >
+                    <ExternalLink size={12} /> Open Trace Page
+                  </button>
+                </div>
+              </div>
+            </div>
 
             <button onClick={() => setActiveTab('add_inspection')} className="w-full btn-primary flex justify-center items-center gap-2 mt-4">
               <CheckSquare size={18} /> New Inspection Log

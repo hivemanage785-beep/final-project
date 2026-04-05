@@ -2,18 +2,32 @@ import { Router } from 'express';
 import { 
   getPendingRequests, 
   approveRequest, 
-  rejectRequest 
+  getAllFarmers,
+  updateFarmerStatus,
+  deleteFarmer,
+  getAllBeekeepers,
+  verifyBeekeeper
 } from '../controllers/adminController.js';
 
 const router = Router();
 
-// Endpoint 2: GET /api/admin/requests
+/**
+ * ── CONTACT REQUESTS ──────────────────────────────────────────────────────────
+ */
 router.get('/requests', getPendingRequests);
-
-// Endpoint 3: POST /api/admin/requests/:id/approve
 router.post('/requests/:id/approve', approveRequest);
 
-// Endpoint 4: POST /api/admin/requests/:id/reject
-router.post('/requests/:id/reject', rejectRequest);
+/**
+ * ── FARMER MANAGEMENT ─────────────────────────────────────────────────────────
+ */
+router.get('/farmers', getAllFarmers);
+router.patch('/farmers/:id/status', updateFarmerStatus);
+router.delete('/farmers/:id', deleteFarmer);
+
+/**
+ * ── BEEKEEPER MANAGEMENT ──────────────────────────────────────────────────────
+ */
+router.get('/beekeepers', getAllBeekeepers);
+router.patch('/beekeepers/:id/verify', verifyBeekeeper);
 
 export default router;

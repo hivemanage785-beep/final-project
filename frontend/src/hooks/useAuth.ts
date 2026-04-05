@@ -4,58 +4,39 @@ import { auth } from '../firebase';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(!import.meta.env.DEV);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      const mockToken = localStorage.getItem('auth_token');
-      if (mockToken === 'mock-dev-token-123') {
-        setUser({
-          uid: 'dev-user-123',
-          displayName: 'Dev User',
-          email: 'dev@buzz-off.local',
-          photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=bee',
-        } as User);
-      }
-      setLoading(false);
-      return;
-    }
-
-    const unsubscribe = auth.onAuthStateChanged((u) => {
+    const unsubscribe = auth.onAuthStateChanged(async (u) => {
       setUser(u);
+      if (u) {
+        console.log("🔑 YOUR FIREBASE UID IS:", u.uid);
+        const token = await u.getIdToken();
+        localStorage.setItem('auth_token', token);
+      } else {
+        localStorage.removeItem('auth_token');
+      }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
   const signInWithGoogle = async () => {
-    if (import.meta.env.DEV) {
-      setLoading(true);
-      await new Promise(r => setTimeout(r, 800));
-      const mockUser = {
-        uid: 'dev-user-123',
-        displayName: 'Dev User',
-        email: 'dev@buzz-off.local',
-        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=bee',
-      } as User;
-      
-      setUser(mockUser);
-      localStorage.setItem('auth_token', 'mock-dev-token-123'); // For apiFetch
+    setLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const token = await result.user.getIdToken();
+      localStorage.setItem('auth_token', token);
+    } catch (error) {
+      console.error("Firebase Login Error:", error);
+    } finally {
       setLoading(false);
-      return;
     }
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const token = await result.user.getIdToken();
-    localStorage.setItem('auth_token', token);
   };
 
   const signOut = async () => {
     localStorage.removeItem('auth_token');
-    if (import.meta.env.DEV) {
-       setUser(null);
-       return;
-    }
     await firebaseSignOut(auth);
   };
 

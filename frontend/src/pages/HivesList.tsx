@@ -47,9 +47,11 @@ export const HivesList: React.FC = () => {
     <div className="flex-1 bg-gray-50 h-full w-full pb-20">
       <div className="sticky top-0 bg-white/80 backdrop-blur-md z-10 px-4 py-3 border-b border-gray-200 flex justify-between items-center shadow-sm">
         <h1 className="text-xl font-bold text-gray-900">My Hives</h1>
-        <button onClick={handleAddHive} className="bg-[#5D0623] text-white p-2 text-sm rounded-full flex items-center shadow-md">
-          <Plus size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleAddHive} className="bg-[#5D0623] text-white p-2 text-sm rounded-full flex items-center shadow-md">
+            <Plus size={20} />
+          </button>
+        </div>
       </div>
       
       <div className="p-4 space-y-3 overflow-y-auto">

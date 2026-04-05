@@ -42,12 +42,11 @@ export const createHarvestSchema = z.object({
 
 export const authSchema = z.object({
   email: z.string().email('Valid email required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  firebaseUid: z.string().min(1, 'Firebase UID required'),
   displayName: z.string().optional(),
   role: z.string().optional()
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('Valid email required'),
-  password: z.string().min(1, 'Password required')
+  idToken: z.string().min(1, 'Firebase ID token required')
 });

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 const inspectionSchema = new mongoose.Schema({
+  _id: { type: String }, // support UUID from frontend
   uid: { type: String, required: true },
   hive_id: { type: String, required: true },
   date: { type: Date, required: true },
@@ -9,6 +10,11 @@ const inspectionSchema = new mongoose.Schema({
   queen_status: { type: String },
   health_status: { type: String },
   syncVersion: { type: Number, default: 1 }
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  id: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
 
 export const Inspection = mongoose.model('Inspection', inspectionSchema);

@@ -41,9 +41,6 @@ export const FarmerDiscoveryList: React.FC<FarmerDiscoveryListProps> = ({ lat, l
     }
   };
 
-  // Only show for "Excellent" high scores per requirement
-  if (score < 70) return null;
-
   if (loading) {
     return (
        <div className="mt-6 flex justify-center p-4">

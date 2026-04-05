@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 
 const BatchSchema = new mongoose.Schema({
-  // Identity
-  batch_id:          { type: String, required: true, unique: true },   // UUID
+  _id:              { type: String },                 // support UUID/id from frontend sync
+  batch_id:          { type: String, required: true, unique: true },   // UUID (duplicate of _id often)
   publicId:          { type: String, required: true, unique: true },   // short hex for QR URL
 
   // Ownership
@@ -35,7 +35,12 @@ const BatchSchema = new mongoose.Schema({
   locked_at:         { type: Date,   default: null },
   qrUrl:             { type: String, default: null },
 
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  id: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
 
 // ── Indexes ──────────────────────────────────────────────────────────────────
 BatchSchema.index({ batch_id: 1 });
@@ -50,7 +55,6 @@ BatchSchema.pre('save', function (next) {
     'verification_status','certification_id','verified_by','verified_at'
   ]);
 
-  // Check if any non-allowed field was modified after lock
   if (this.is_locked) {
     const modified = this.modifiedPaths();
     const illegal = modified.filter(p => !ALLOWED_AFTER_LOCK.has(p) && p !== 'is_locked' && p !== 'qrUrl');

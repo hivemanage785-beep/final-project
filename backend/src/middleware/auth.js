@@ -1,45 +1,55 @@
-import jwt from 'jsonwebtoken';
+import firebaseAdmin from '../config/firebase-admin.js';
+import { User } from '../models/User.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'buzzoff-dev-secret-key-change-in-production';
-
-// Mock user for development mode — matches the mock user set in useAuth.ts
-const DEV_MOCK_USER = {
-  id: 'dev-user-123',
-  email: 'dev@buzz-off.local',
-  displayName: 'Dev User',
-  role: 'admin', // admin role so all features are accessible in dev
-};
-
-export function auth(req, res, next) {
+export async function auth(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'Not authorized, no token' });
+    return res.status(401).json({ success: false, error: 'Authorization header missing' });
   }
 
   const token = header.split(' ')[1];
 
-  // Dev bypass: accept the frontend mock token without JWT verification
-  if (
-    (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === undefined) &&
-    token === 'mock-dev-token-123'
-  ) {
-    req.user = DEV_MOCK_USER;
-    return next();
-  }
-
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+    
+    // Fetch user from DB to get the role and internal ID
+    let user = await User.findOne({ firebaseUid: decodedToken.uid });
+    
+    // If user doesn't exist in MongoDB but exists in Firebase, 
+    // it's likely first-time login
+    if (!user) {
+        user = await User.create({
+            email: decodedToken.email,
+            displayName: decodedToken.name || decodedToken.email,
+            firebaseUid: decodedToken.uid,
+            role: 'beekeeper'
+        });
+    }
+
+    // Combine decoded claims with local app data
+    req.user = {
+        ...decodedToken,
+        id: user._id.toString(),
+        role: user.role,
+        isVerified: user.isVerified
+    };
+    
     next();
   } catch (error) {
-    return res.status(401).json({ success: false, error: 'Not authorized, token failed' });
+    res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });
   }
 }
 
-export function admin(req, res, next) {
-  if (req.user && req.user.role === 'admin') {
+export async function adminAuth(req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'Admin access required' });
+    }
+    
     next();
-  } else {
-    return res.status(403).json({ success: false, error: 'Not authorized as admin' });
-  }
 }
+
+export const admin = adminAuth;

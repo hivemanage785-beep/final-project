@@ -62,7 +62,7 @@ export const TracePage: React.FC<{ publicId: string }> = ({ publicId }) => {
   useEffect(() => {
     if (!publicId) return;
     const controller = new AbortController();
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
     fetch(`${API_BASE}/api/batches/trace/${publicId}`, { signal: controller.signal })
       .then(r => r.json())

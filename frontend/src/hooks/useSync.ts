@@ -36,8 +36,31 @@ export function useSync() {
   }, []);
 
   useEffect(() => {
-    if (isOnline && user) flushOutbox();
+    if (isOnline && user) {
+      flushOutbox();
+      syncDown();
+    }
   }, [isOnline, user]);
+
+  const syncDown = useCallback(async () => {
+    if (!user) return;
+    try {
+      // Pull Hives
+      const res = await apiFetch('/api/hives', { method: 'GET' });
+      if (res && res.data) {
+        await db.hives.bulkPut(res.data);
+        // Also enthusiastically pull inspections for those hives
+        for (const hive of res.data) {
+          const insRes = await apiFetch(`/api/inspections?hive_id=${hive.id}`, { method: 'GET' });
+          if(insRes && insRes.data) {
+            await db.inspections.bulkPut(insRes.data);
+          }
+        }
+      }
+    } catch(e) {
+      console.warn("Failed to sync down from server:", e);
+    }
+  }, [user]);
 
   const flushOutbox = useCallback(async () => {
     // Hard lock using ref — works correctly across concurrent calls

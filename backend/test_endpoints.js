@@ -18,7 +18,7 @@ async function testEndpoints() {
   // 2. Heatmap
   try {
     const res = await axios.get(`${BASE_URL}/api/heatmap?month=4`);
-    console.log(`✅ GET /api/heatmap: ${res.status}, Points returned: ${res.data.length}`);
+    console.log(`✅ GET /api/heatmap: ${res.status}, Points returned: ${res.data.data?.points?.length}`);
   } catch (e) {
     console.error('❌ GET /api/heatmap FAILED:', e.message);
     allPassed = false;
@@ -32,8 +32,8 @@ async function testEndpoints() {
       lng: 78.656,
       month: 4
     });
-    console.log(`✅ POST /api/score: ${res.status}, Score: ${res.data.score}, Grade: ${res.data.grade}`);
-    scoreData = res.data;
+    console.log(`✅ POST /api/score: ${res.status}, Score: ${res.data.data?.score}, Grade: ${res.data.data?.grade}`);
+    scoreData = res.data.data;
   } catch (e) {
     console.error('❌ POST /api/score FAILED:', e.message, e.response?.data);
     allPassed = false;
@@ -46,14 +46,14 @@ async function testEndpoints() {
         lat: 10.833,
         lng: 78.656,
         month: 4,
-        weatherScore: scoreData.weatherScore,
-        floraScore: scoreData.floraScore,
-        seasonScore: scoreData.seasonScore,
-        finalScore: scoreData.score,
-        floraCount: scoreData.floraCount,
-        avgTemp: scoreData.rawWeather.avgTemp,
-        avgRain: scoreData.rawWeather.avgRain,
-        avgWind: scoreData.rawWeather.avgWind,
+        weatherScore: scoreData.weatherScore || 0,
+        floraScore: scoreData.floraScore || 0,
+        seasonScore: scoreData.seasonScore || 0,
+        finalScore: scoreData.score || 0,
+        floraCount: scoreData.floraCount || 0,
+        avgTemp: scoreData.rawWeather?.avgTemp || 28,
+        avgRain: scoreData.rawWeather?.avgRain || 0,
+        avgWind: scoreData.rawWeather?.avgWind || 5,
         uid: 'test-user-123'
       });
       console.log(`✅ POST /api/feedback: ${res.status}, Response:`, res.data);

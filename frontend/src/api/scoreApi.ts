@@ -1,4 +1,4 @@
-import { ScoreResult, HeatmapPoint, FeedbackPayload } from '../types/score';
+import { ScoreResult, PartnerFarmer, RequestStatus, FeedbackPayload } from '../types/score';
 import { apiFetch } from '../lib/api';
 
 export async function fetchScore(lat: number, lng: number, month: number): Promise<ScoreResult> {

@@ -21,7 +21,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 z-[5000]"
+            className="absolute inset-0 bg-black/40 z-[5000]"
           />
           
           {/* Sheet */}
@@ -30,7 +30,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`fixed bottom-0 left-0 w-full bg-white rounded-t-3xl z-[5001] shadow-2xl flex flex-col ${height}`}
+            className={`absolute bottom-0 left-0 w-full bg-white rounded-t-3xl z-[5001] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] flex flex-col ${height}`}
           >
             {/* Handle bar */}
             <div className="w-full flex justify-center pt-3 pb-1" onClick={onClose}>

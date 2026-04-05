@@ -71,10 +71,6 @@ export async function processSyncQueue(req, res, next) {
       });
     }
 
-    if (global.IS_MOCKED_DB) {
-      const mockResults = operations.map(op => ({ localId: op.data?.id, success: true }));
-      return res.status(200).json({ success: true, data: { processed: operations.length, results: mockResults } });
-    }
 
     // Process all ops concurrently with bounded parallelism
     const results = await Promise.all(operations.map(op => processSingleOp(op, req.user)));

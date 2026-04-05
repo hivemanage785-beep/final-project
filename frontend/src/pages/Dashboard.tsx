@@ -6,6 +6,7 @@ import { useSync } from '../hooks/useSync';
 import { Hexagon, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 import { apiFetch } from '../lib/api';
+import { ProfileAvatar } from '../components/ProfileAvatar';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -48,7 +49,7 @@ export const Dashboard: React.FC = () => {
             {isOnline ? (isSyncing ? 'Syncing data...' : 'Cloud connected') : 'Offline Mode Active'}
           </p>
         </div>
-        <img src={user?.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'} alt="Profile" className="w-12 h-12 rounded-full shadow-md border-2 border-white ring-2 ring-rose-100 object-cover" />
+        <ProfileAvatar photoURL={user?.photoURL} displayName={user?.displayName} size="md" className="shadow-md border-2 border-white ring-2 ring-rose-100" />
       </motion.div>
 
       <div className="grid grid-cols-2 gap-4 mb-8">
