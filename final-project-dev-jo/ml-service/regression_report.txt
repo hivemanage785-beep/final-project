@@ -1,0 +1,8 @@
+--- EVALUATION METRICS ---
+Test MAE: 0.99
+Test R2 Score: 0.9756
+CV MAE: 1.16
+
+--- VALIDATION TESTS ---
+Bad Conditions (Exp Low): Score=14.64 -> Risk=0
+Good Conditions (Exp High): Score=44.20 -> Risk=1

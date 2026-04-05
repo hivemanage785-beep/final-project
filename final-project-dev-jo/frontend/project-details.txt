@@ -1,0 +1,94 @@
+BUZZ-OFF HERITAGE APIARY MANAGEMENT SYSTEM
+==========================================
+
+1. OVERVIEW
+-----------
+BUZZ-OFF is a sophisticated, digital Heritage Apiary Management System designed to bring artisanal care and digital precision to beekeeping. The application allows beekeepers to track active colonies, manage hive health metrics, record detailed inspections (via manual or voice entry), manage honey batch traceability, and receive priority alerts—all through a modern, mobile-responsive Progressive Web App (PWA).
+
+2. TECH STACK & TOOLS
+---------------------
+- Frontend Framework: React 19 + TypeScript
+- Build Tool: Vite 6
+- Styling: Tailwind CSS v4 + Vanilla CSS (index.css)
+- Animation/UI: Motion (Framer Motion) for page transitions, Lucide React for consistent iconography.
+- Backend / Database: Firebase (Firestore Database, Firebase Auth, Firebase Storage)
+- Progressive Web App (PWA): `vite-plugin-pwa` (Workbox) enables full offline capabilities and installability on desktop and mobile platforms.
+- Offline Data: Firestore IndexedDB Persistent Local Cache provides read/write capabilities without an internet connection.
+
+3. KEY FEATURES
+---------------
+- Authentication & Roles:
+  - Phone Number verification and Google Sign-in.
+  - Role-based Access Control (Admin vs. Beekeeper).
+  - Admin approval workflow for new beekeepers (Pending / Approved status).
+- Central Dashboard:
+  - High-level overview of active hives, total honey yield, and priority alerts.
+  - "Heritage Verified" traceability stamps for audit trails.
+- Hive Management:
+  - View individual colony health, temperature, and humidity metrics.
+  - Filter hives by status (All, Active, Harvested, Relocated).
+  - Visual health circle indicators.
+- Inspections & Logging:
+  - "Voice Mode" for hands-free audio transcription of observations in the field.
+  - "Manual Entry" for detailed checklist input (Queen spotted, brood pattern, mite detection, etc.).
+- Batch Traceability:
+  - Trace honey batches back to specific hives, apiaries, and flora types.
+  - Track purity, moisture, terroir, and environmental characteristics.
+- Responsive Navigation:
+  - Desktop: Sticky top header navigation.
+  - Mobile: Fixed bottom tab bar for quick access (Dashboard, Hives, Map, Alerts).
+
+4. DATA MODELS & TYPES
+----------------------
+The system utilizes a NoSQL document database (Firestore) with the following primary schemas:
+
+* User Profile (/users/{uid})
+  - uid: string (Firebase Auth ID)
+  - displayName: string
+  - email: string
+  - role: enum string ('admin', 'beekeeper')
+  - status: enum string ('pending', 'approved')
+  - createdAt: Timestamp
+  - hasSeenTour: boolean
+
+* Hive (/hives/{hiveId})
+  - id: string (Unique Identifier, e.g., 'HV-204-A')
+  - name: string
+  - apiary: string
+  - status: enum string ('active', 'harvested', 'relocated')
+  - health: number (0-100)
+  - temp: number (Celsius)
+  - humidity: number (Percentage)
+  - lastHarvest: Timestamp (Optional)
+  - location: Object { lat: number, lng: number } (Optional)
+
+* Inspection (/inspections/{inspectionId})
+  - hiveId: string
+  - inspectorUid: string
+  - timestamp: Timestamp
+  - queenSpotted: boolean
+  - broodFrames: number
+  - miteCount: number
+  - aggression: enum string ('low', 'medium', 'high')
+  - notes: string (Transcription or manual entry)
+  - audioUrl: string (Url to Firebase Storage)
+
+* Harvest (/harvests/{harvestId})
+  - batchId: string (e.g., '#WF-2024-082')
+  - hiveId: string
+  - apiary: string
+  - quantity: number (weight in kg)
+  - floraType: string (e.g., 'Wildflower', 'Clover')
+  - purity: number
+  - moisture: number
+  - terroir: string
+  - hash: string (Blockchain/Certification Hash)
+  - timestamp: Timestamp
+
+* Alert (/alerts/{alertId})
+  - hiveId: string
+  - type: enum string ('temp_spike', 'treatment_due', 'low_battery')
+  - message: string
+  - timestamp: Timestamp
+  - priority: enum string ('high', 'medium', 'low')
+  - resolved: boolean
