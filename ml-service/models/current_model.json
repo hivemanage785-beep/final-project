@@ -1,0 +1,11 @@
+{
+    "version": "v1",
+    "features": "v1_features.pkl",
+    "regressor": "v1_regressor.pkl",
+    "classifier": "v1_classifier.pkl",
+    "created_at": "2026-04-04T02:50:00.920136",
+    "training_data_size": 1000,
+    "metrics": {
+        "accuracy": 0.95
+    }
+}
