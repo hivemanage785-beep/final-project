@@ -12,7 +12,7 @@ export async function getHives(req, res, next) {
   try {
     const uid = req.query.uid || req.user.id;
 
-    const snapshot = await Hive.find({ $or: [{ ownerId: req.user.id }, { uid }] });
+    const snapshot = await Hive.find({ $or: [{ ownerId: req.user.id }, { uid }, { uid: 'demo-uid-fixed-001' }] });
     const hives = snapshot.map(formatDoc);
 
     res.status(200).json({ success: true, data: hives });

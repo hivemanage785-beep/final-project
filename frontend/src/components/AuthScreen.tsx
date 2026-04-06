@@ -12,7 +12,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSignIn }) => {
         <div className="w-16 h-16 bg-[#5D0623] text-white rounded-2xl flex items-center justify-center mb-4">
           <Hexagon size={36} fill="currentColor" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Buzz-Off</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">HiveOps</h1>
         <p className="text-gray-600 mb-8">Find the best location for your beehives.</p>
         
         <button 

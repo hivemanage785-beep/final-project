@@ -1,6 +1,5 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -23,10 +22,6 @@ if (missingVars.length > 0) {
 }
 
 const app = initializeApp(firebaseConfig);
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache(),
-}, firebaseConfig.firestoreDatabaseId);
-
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 

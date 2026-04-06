@@ -16,13 +16,8 @@ export async function scoreController(req, res, next) {
 
     // ─── TILE MISSING: return explicit error ─────────────────────────────────
     if (!tile || tile.ttlExpires < new Date()) {
-      logger.warn(`[Score] Tile not ready for ${tileKey} — returning DATA_NOT_READY`);
-      return res.status(503).json({
-        success: false,
-        error: 'DATA_NOT_READY',
-        message: 'Tile data is being precomputed. Try again shortly.',
-        tileKey
-      });
+      logger.warn(`[Score] Tile not ready for ${tileKey} — bypassing to LIVE FALLBACK`);
+      return liveScoreFallback(req, res, next, lat, lng, month);
     }
 
     // ─── TILE FRESH: compose response from precomputed data ──────────────────

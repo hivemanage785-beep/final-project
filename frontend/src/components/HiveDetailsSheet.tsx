@@ -121,10 +121,25 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
 
             <div className="bg-gray-50 rounded-xl p-4">
                  <div className="flex items-center gap-2 mb-2 text-gray-800 font-bold text-sm">
-                   <MapPin size={16} className="text-[#5D0623]" /> Location
+                   <MapPin size={16} className="text-[#5D0623]" /> Current Location
                  </div>
-                 <p className="text-gray-600 text-xs font-mono">Lat: {hive.lat.toFixed(6)}</p>
-                 <p className="text-gray-600 text-xs font-mono">Lng: {hive.lng.toFixed(6)}</p>
+                 <p className="text-gray-600 text-xs font-mono">Lat: {hive.lat?.toFixed(6) || 'N/A'}</p>
+                 <p className="text-gray-600 text-xs font-mono">Lng: {hive.lng?.toFixed(6) || 'N/A'}</p>
+                 
+                 {hive.location_history && hive.location_history.length > 0 && (
+                   <div className="mt-3 pt-3 border-t border-gray-200">
+                     <p className="text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-wider">Relocation History</p>
+                     <div className="space-y-3">
+                       {hive.location_history.map((loc, idx) => (
+                         <div key={idx} className="relative pl-3 border-l-2 border-[#5D0623]/20">
+                           <div className="text-[10px] font-bold text-[#5D0623]">{new Date(loc.date).toLocaleDateString()}</div>
+                           <div className="text-xs text-gray-700 font-medium">{loc.reason}</div>
+                           <div className="text-[10px] text-gray-500 font-mono mt-0.5">Moved to: {loc.lat?.toFixed(4)}, {loc.lng?.toFixed(4)}</div>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
             </div>
 
             {hive.notes && (

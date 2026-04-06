@@ -11,6 +11,12 @@ const hiveSchema = new mongoose.Schema({
   queen_status: { type: String, enum: ['healthy', 'missing', 'replaced'], default: 'healthy' },
   health_status: { type: String, enum: ['good', 'fair', 'poor'], default: 'good' },
   last_inspection_date: { type: Date },
+  location_history: [{
+    lat: Number,
+    lng: Number,
+    date: Date,
+    reason: String
+  }],
   notes: { type: String },
   syncVersion: { type: Number, default: 1 }
 }, { 

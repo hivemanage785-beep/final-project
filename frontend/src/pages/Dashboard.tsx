@@ -11,7 +11,7 @@ import { ProfileAvatar } from '../components/ProfileAvatar';
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { isOnline, isSyncing } = useSync();
-  const hives = useLiveQuery(() => db.hives.where('uid').equals(user?.uid || '').toArray(), [user]) || [];
+  const hives = useLiveQuery(() => db.hives.where('uid').anyOf([user?.uid || '', 'demo-uid-fixed-001']).toArray(), [user]) || [];
   
   const totalHives = hives.length;
   const goodHives = hives.filter(h => h.health_status === 'good').length;

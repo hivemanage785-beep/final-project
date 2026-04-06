@@ -9,6 +9,7 @@ const api = axios.create({
 
 // Middleware: Injects Firebase ID token into every request
 api.interceptors.request.use(async (config) => {
+
   if (auth.currentUser) {
     try {
       const token = await auth.currentUser.getIdToken();

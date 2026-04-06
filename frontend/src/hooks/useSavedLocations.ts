@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase';
 import { SavedLocation } from '../types/score';
 
 export function useSavedLocations(uid: string | undefined) {
@@ -15,44 +13,43 @@ export function useSavedLocations(uid: string | undefined) {
       return;
     }
 
-    const q = query(
-      collection(db, 'users', uid, 'savedLocations'),
-      orderBy('timestamp', 'desc'),
-      limit(20)
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const locs = snapshot.docs.map(d => ({
-          id: d.id,
-          ...d.data()
-        })) as SavedLocation[];
-        setLocations(locs);
-        setLoading(false);
-        setError(null);
-      },
-      (err) => {
-        console.error('Firestore snapshot error:', err.message);
-        setError('Failed to load saved locations.');
-        setLoading(false);
+    try {
+      const storageKey = `saved_locations_${uid}`;
+      const data = localStorage.getItem(storageKey);
+      if (data) {
+        setLocations(JSON.parse(data));
+      } else {
+        setLocations([]);
       }
-    );
-
-    return () => unsubscribe();
+    } catch (err: any) {
+      console.error('LocalStorage error:', err.message);
+      setError('Failed to load saved locations.');
+    } finally {
+      setLoading(false);
+    }
   }, [uid]);
 
   const saveLocation = async (location: Omit<SavedLocation, 'id' | 'timestamp'>) => {
     if (!uid) return;
-    await addDoc(collection(db, 'users', uid, 'savedLocations'), {
+    const newLoc: SavedLocation = {
       ...location,
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(7),
       timestamp: Date.now()
-    });
+    };
+    
+    // Calculate new state
+    const updated = [newLoc, ...locations].slice(0, 20); // Keep max 20
+    setLocations(updated);
+    
+    // Commit to storage
+    localStorage.setItem(`saved_locations_${uid}`, JSON.stringify(updated));
   };
 
   const deleteLocation = async (id: string) => {
     if (!uid) return;
-    await deleteDoc(doc(db, 'users', uid, 'savedLocations', id));
+    const updated = locations.filter(loc => loc.id !== id);
+    setLocations(updated);
+    localStorage.setItem(`saved_locations_${uid}`, JSON.stringify(updated));
   };
 
   return { locations, saveLocation, deleteLocation, loading, error };

@@ -94,7 +94,7 @@ export const TracePage: React.FC<{ publicId: string }> = ({ publicId }) => {
             <div className="w-10 h-10 bg-[#5D0623] rounded-2xl flex items-center justify-center shadow-lg">
               <Hexagon className="text-white" size={20} fill="white" />
             </div>
-            <span className="text-xl font-black text-gray-900 tracking-tight">BuzzOff Trace</span>
+            <span className="text-xl font-black text-gray-900 tracking-tight">HiveOps Trace</span>
           </div>
           <p className="text-sm text-gray-500">Tamper-proof honey authenticity verification</p>
         </motion.div>

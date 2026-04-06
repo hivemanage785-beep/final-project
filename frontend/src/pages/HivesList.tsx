@@ -9,7 +9,7 @@ import { HiveDetailsSheet } from '../components/HiveDetailsSheet';
 export const HivesList: React.FC = () => {
   const { user } = useAuth();
   const { queueOperation } = useSync();
-  const hives = useLiveQuery(() => db.hives.where('uid').equals(user?.uid || '').toArray(), [user]) || [];
+  const hives = useLiveQuery(() => db.hives.where('uid').anyOf([user?.uid || '', 'demo-uid-fixed-001']).toArray(), [user]) || [];
   
   const [selectedHive, setSelectedHive] = useState<Hive | null>(null);
 

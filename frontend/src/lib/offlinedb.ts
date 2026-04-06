@@ -11,18 +11,18 @@ export interface OfflineFarmer {
   last_synced: number;
 }
 
-export class BuzzOffDatabase extends Dexie {
+export class HiveOpsDatabase extends Dexie {
   farmers!: Table<OfflineFarmer>;
 
   constructor() {
-    super('BuzzOffDatabase');
+    super('HiveOpsDatabase');
     this.version(2).stores({
       farmers: '_id, name, lat, lng, last_synced' 
     });
   }
 }
 
-export const db = new BuzzOffDatabase();
+export const db = new HiveOpsDatabase();
 
 // Sync online fetched farmers to IndexedDB cache
 export async function saveFarmersOffline(farmers: any[]) {

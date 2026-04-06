@@ -38,7 +38,7 @@ export default function App() {
   // 4. Role-based Route Protection for /admin
   if (pathParts[1] === 'admin') {
     // If not admin, redirect or show error (in a real app we'd use a router, here we just check role)
-    if ((user as any).role === 'admin' || (user as any).email?.endsWith('@buzz-off.io')) {
+    if ((user as any).role === 'admin' || (user as any).email?.endsWith('@hiveops.io')) {
        return <AdminDashboard />;
     } else {
        return (

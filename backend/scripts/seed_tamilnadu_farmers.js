@@ -5,7 +5,7 @@ import path from 'path';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/buzzoff";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/hiveops";
 
 // Tamil Nadu Bounding Box roughly: Lat 8.08 to 13.5, Lng 76.1 to 80.2
 const TAMIL_NADU_BOUNDS = {

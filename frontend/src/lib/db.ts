@@ -22,6 +22,7 @@ export interface Hive {
   health_status: 'good' | 'fair' | 'poor';
   last_inspection_date: string;
   notes: string;
+  location_history?: { lat: number; lng: number; date: string; reason: string }[];
 }
 
 export interface Harvest {
@@ -66,7 +67,7 @@ export class AppDatabase extends Dexie {
   outbox!: Table<SyncOperation, number>;
 
   constructor() {
-    super('BuzzOffOfflineDB');
+    super('HiveOpsOfflineDB');
 
     // Version 1 (legacy)
     this.version(1).stores({
@@ -110,7 +111,7 @@ export let db = createDB();
 db.open().catch(async (err) => {
   console.error('[DB] IndexedDB open failed, attempting recovery:', err);
   try {
-    await Dexie.delete('BuzzOffOfflineDB');
+    await Dexie.delete('HiveOpsOfflineDB');
     db = createDB();
     await db.open();
     console.warn('[DB] IndexedDB was reset due to corruption. Offline data was lost.');
