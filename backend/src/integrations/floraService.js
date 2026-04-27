@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.js';
 
 export async function fetchFlora(lat, lng) {
   const cacheKey = `flora:${lat.toFixed(2)}:${lng.toFixed(2)}`;
+  
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
@@ -17,15 +18,25 @@ export async function fetchFlora(lat, lng) {
         limit: 0,
         hasCoordinate: true,
         basisOfRecord: 'HUMAN_OBSERVATION'
-      }
+      },
+      timeout: 3000 // Timeout protection
     });
 
-    const floraCount = response.data.count || 0;
+    if (!response.data || typeof response.data.count !== 'number') {
+        throw new Error('Invalid GBIF response structure');
+    }
+
+    const floraCount = Math.max(0, response.data.count);
+    
+    if (isNaN(floraCount)) {
+        throw new Error('Invalid flora count output (NaN)');
+    }
+
     const result = { floraCount };
-    cache.set(cacheKey, result);
+    cache.set(cacheKey, result, 86400); // 24 hours
     return result;
   } catch (error) {
-    logger.error('Flora fetch error', error);
-    return { floraCount: 0 };
+    logger.warn(`[Flora] Fetch failed for ${lat},${lng}: ${error.message}`);
+    throw new Error(`Flora fetch failed: ${error.message}`);
   }
 }

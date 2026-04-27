@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { BottomSheet } from './BottomSheet';
 import { Hive, Inspection, db } from '../lib/db';
-import { Settings, CheckSquare, Activity, MapPin, Search, QrCode, ExternalLink } from 'lucide-react';
+import { Settings, CheckSquare, Activity, MapPin, Search, QrCode, ExternalLink, Mic, Square } from 'lucide-react';
 import { useSync } from '../hooks/useSync';
 import { useAuth } from '../hooks/useAuth';
 import { InspectionTimeline } from './InspectionTimeline';
 import { QRCode } from './QRCode';
+import { storage } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface HiveDetailsSheetProps {
   hive: Hive | null;
@@ -20,11 +22,20 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
   const [editedHive, setEditedHive] = useState<Partial<Hive>>({});
   const [newInspection, setNewInspection] = useState<Partial<Inspection>>({ health_status: 'good', queen_status: 'healthy', box_count: 1 });
 
+  // Audio Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recognitionRef = useRef<any>(null);
+
   React.useEffect(() => {
     if (isOpen && hive) {
       setEditedHive(hive);
-      setNewInspection({ health_status: hive.health_status, queen_status: hive.queen_status, box_count: hive.box_count });
+      setNewInspection({ health_status: hive.health_status, queen_status: hive.queen_status, box_count: hive.box_count, notes: '' });
       setActiveTab('overview');
+      setAudioBlob(null);
+      setIsRecording(false);
     }
   }, [isOpen, hive]);
 
@@ -37,11 +48,68 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
     setActiveTab('overview');
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+      mr.ondataavailable = (e) => chunks.push(e.data);
+      mr.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        stream.getTracks().forEach(t => t.stop());
+      };
+      mr.start();
+      mediaRecorderRef.current = mr;
+      setIsRecording(true);
+
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const rec = new SpeechRecognition();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.onresult = (e: any) => {
+          let finalTranscript = '';
+          for (let i = e.resultIndex; i < e.results.length; ++i) {
+            if (e.results[i].isFinal) {
+              finalTranscript += e.results[i][0].transcript + ' ';
+            }
+          }
+          if (finalTranscript) {
+            setNewInspection(prev => ({ ...prev, notes: ((prev.notes || '') + ' ' + finalTranscript).trim() }));
+          }
+        };
+        rec.start();
+        recognitionRef.current = rec;
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Microphone access denied or not supported');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+    if (recognitionRef.current) recognitionRef.current.stop();
+    setIsRecording(false);
+  };
+
   const handleCreateInspection = async () => {
     if (!hive.id || !user) return;
+    setIsUploading(true);
     const date = new Date().toISOString();
     
-    // Create new inspection with explicit UUID primary key
+    let audio_url = undefined;
+    if (audioBlob) {
+      try {
+        const fileRef = ref(storage, `inspections/${user.uid}/${hive.id}_${Date.now()}.webm`);
+        await uploadBytes(fileRef, audioBlob);
+        audio_url = await getDownloadURL(fileRef);
+      } catch (e) {
+        console.error('Failed to upload audio', e);
+      }
+    }
+    
     const doc: Inspection = {
       id: crypto.randomUUID(), // Required: Dexie uses 'id' as non-auto PK
       uid: user.uid,
@@ -50,7 +118,8 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
       notes: newInspection.notes || '',
       box_count: newInspection.box_count || hive.box_count,
       queen_status: newInspection.queen_status || 'healthy',
-      health_status: newInspection.health_status || 'good'
+      health_status: newInspection.health_status || 'good',
+      audio_url
     };
     
     await db.inspections.add(doc);
@@ -66,6 +135,8 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
     });
     queueOperation('hives', 'update', { id: hive.id, last_inspection_date: date, health_status: doc.health_status, queen_status: doc.queen_status, box_count: doc.box_count });
     
+    setIsUploading(false);
+    setAudioBlob(null);
     setActiveTab('inspections');
   };
 
@@ -211,13 +282,26 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">Observations / Notes</label>
-              <textarea className="input-field min-h-[80px]" placeholder="Evidence of mites? Surplus honey?" value={newInspection.notes || ''} onChange={e => setNewInspection({...newInspection, notes: e.target.value})} />
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs font-bold text-gray-500 uppercase">Observations / Notes</label>
+                <button 
+                  onClick={isRecording ? stopRecording : startRecording}
+                  className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors ${isRecording ? 'bg-red-100 text-red-600 font-bold animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {isRecording ? <><Square size={12}/> Stop Dictation</> : <><Mic size={12}/> Dictate</>}
+                </button>
+              </div>
+              <textarea className="input-field min-h-[80px]" placeholder="Evidence of mites? Surplus honey? Dictate hands-free..." value={newInspection.notes || ''} onChange={e => setNewInspection({...newInspection, notes: e.target.value})} />
+              {audioBlob && !isRecording && (
+                <div className="text-xs text-green-600 font-bold mt-1">✓ Audio recording attached</div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4">
-               <button onClick={() => setActiveTab('inspections')} className="flex-1 btn-secondary">Cancel</button>
-               <button onClick={handleCreateInspection} className="flex-2 btn-primary">Save Log</button>
+               <button onClick={() => setActiveTab('inspections')} className="flex-1 btn-secondary" disabled={isUploading}>Cancel</button>
+               <button onClick={handleCreateInspection} className="flex-2 btn-primary flex justify-center items-center gap-2" disabled={isUploading}>
+                 {isUploading ? 'Saving...' : 'Save Log'}
+               </button>
             </div>
           </div>
         )}

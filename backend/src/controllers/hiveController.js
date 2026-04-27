@@ -10,14 +10,29 @@ const formatDoc = (doc) => {
 
 export async function getHives(req, res, next) {
   try {
-    const uid = req.query.uid || req.user.id;
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-    const snapshot = await Hive.find({ $or: [{ ownerId: req.user.id }, { uid }, { uid: 'demo-uid-fixed-001' }] });
+    const userId = req.user.id;
+    const uid = req.query.uid || userId;
+
+    const query = [];
+    query.push({ ownerId: userId });
+    if (uid !== userId) query.push({ uid });
+    query.push({ uid: 'demo-uid-fixed-001' });
+
+    const snapshot = await Hive.find({ $or: query });
     const hives = snapshot.map(formatDoc);
 
-    res.status(200).json({ success: true, data: hives });
+    res.status(200).json(hives);
   } catch (error) {
-    next(error);
+    console.error("HIVES API ERROR:", {
+      user: req.user?.id,
+      message: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ error: "Failed to fetch hives" });
   }
 }
 
@@ -41,7 +56,7 @@ export async function updateHive(req, res, next) {
     const updated = await Hive.findOneAndUpdate(
       { _id: id, $or: [{ ownerId: req.user.id }, { uid: req.user.id }] },
       payload,
-      { new: true }
+      { returnDocument: 'after' }
     );
     
     if (!updated) return res.status(404).json({ success: false, error: 'Hive not found or not owned by you' });

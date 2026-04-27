@@ -1,22 +1,15 @@
 import { ScoreResult, PartnerFarmer, RequestStatus, FeedbackPayload } from '../types/score';
 import { apiFetch } from '../lib/api';
 
+
+
+
 export async function fetchScore(lat: number, lng: number, month: number): Promise<ScoreResult> {
-  // apiFetch throws on non-OK, returns data.data
   return apiFetch('/api/score', {
     method: 'POST',
     body: { lat, lng, month },
-    timeoutMs: 12000  // tile lookup can be slow on cold DB
+    timeoutMs: 15000
   });
-}
-
-export async function fetchHeatmapGrid(
-  month: number,
-  bounds: { lat_min: number; lat_max: number; lng_min: number; lng_max: number }
-): Promise<[number, number, number][]> {
-  const query = `?month=${month}&lat_min=${bounds.lat_min}&lat_max=${bounds.lat_max}&lng_min=${bounds.lng_min}&lng_max=${bounds.lng_max}`;
-  const data = await apiFetch(`/api/heatmap-grid${query}`, { timeoutMs: 15000 });
-  return data || [];
 }
 
 export async function postFeedback(data: FeedbackPayload): Promise<void> {

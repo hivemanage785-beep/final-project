@@ -36,6 +36,12 @@ export async function auth(req, res, next) {
     
     next();
   } catch (error) {
+    console.error("AUTH ERROR:", error.message);
+    
+    if (error.code === 'auth/id-token-expired') {
+      return res.status(401).json({ success: false, error: 'Unauthorized: Token expired' });
+    }
+    
     res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });
   }
 }

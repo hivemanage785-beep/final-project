@@ -2,193 +2,224 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet.heat';
-import { User } from 'firebase/auth';
-import { HeatmapLayer } from './HeatmapLayer';
+
 import { ScorePanel } from './ScorePanel';
-import { DiscoveryPopup } from './DiscoveryPopup';
 import { SavedLocationsDrawer } from './SavedLocationsDrawer';
-import { Legend } from './Legend';
 import { useScore } from '../hooks/useScore';
-import { useMapInteractions, hexIcon, liveUserIcon, bestSpotIcon } from '../hooks/useMapInteractions';
-import { SavedLocation } from '../types/score';
-import { LocateFixed, Loader2, Layers, Map as MapIcon, CircleDot, Sparkles } from 'lucide-react';
+import { useSavedLocations } from '../hooks/useSavedLocations';
+import { useMapInteractions, hexIcon, liveUserIcon } from '../hooks/useMapInteractions';
+import HeatmapLayer from './DeckHeatmapLayer';
 
-// GPS Button Component
-const LocateButton: React.FC<{ onClick: () => void; loading: boolean }> = ({ onClick, loading }) => (
-  <button 
-    onClick={onClick}
-    disabled={loading}
-    className="absolute bottom-6 right-6 z-[1000] w-12 h-12 bg-white rounded-full shadow-xl border border-gray-100 flex items-center justify-center text-primary-600 hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50"
-    title="Use my location"
-  >
-    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LocateFixed className="w-5 h-5" />}
-  </button>
-);
-
-
-export interface MapProps {
-  selectedMonth: number;
-  user: User;
-  isSavedDrawerOpen: boolean;
-  setIsSavedDrawerOpen: (o: boolean) => void;
-}
-
-// Fix default leaflet icon paths
+/* Fix default leaflet icon paths */
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconUrl:       'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl:     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Thin leaflet event bridge component
-const MapClickHandler: React.FC<{ onClick: (lat: number, lng: number) => void }> = ({ onClick }) => {
-  useMapEvents({ click: (e) => onClick(e.latlng.lat, e.latlng.lng) });
+/* ── Internal helpers ── */
+const ClickHandler: React.FC<{ onPick: (lat: number, lng: number) => void }> = ({ onPick }) => {
+  useMapEvents({ click: e => onPick(e.latlng.lat, e.latlng.lng) });
   return null;
 };
 
-// Camera panner when navigating to a saved location
-const MapPanner: React.FC<{ center?: [number, number] }> = ({ center }) => {
+const MapPanner: React.FC<{ target?: { lat: number; lng: number } | null }> = ({ target }) => {
   const map = useMap();
   useEffect(() => {
-    if (center) map.setView(center, 9, { animate: true });
-  }, [center, map]);
+    if (target) map.setView([target.lat, target.lng], 10, { animate: true });
+  }, [target, map]);
   return null;
 };
 
-export const MapInner: React.FC<MapProps> = ({ selectedMonth, user, isSavedDrawerOpen, setIsSavedDrawerOpen }) => {
-  const [showHeatmap, setShowHeatmap] = useState(true);
-  const [showMarkers, setShowMarkers] = useState(true);
-  const [showBest, setShowBest] = useState(false);
-  const [liveLocation, setLiveLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [bestSpot, setBestSpot] = useState<{lat: number, lng: number, score: number} | null>(null);
-  const score = useScore(user, setIsSavedDrawerOpen);
+/* ── Main component ── */
+export interface MapInnerProps { selectedMonth: number; user: any; }
 
-  const { markers, handleMapClick } = useMapInteractions((lat, lng) => {
-    setIsSavedDrawerOpen(false);
-    score.fetchLocationScore(lat, lng, selectedMonth, user.uid);
+export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
+  const [showHeatmap,  setShowHeatmap]  = useState(true);
+  const [isSavedOpen,  setIsSavedOpen]  = useState(false);
+  const [liveLocation, setLiveLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [panTarget,    setPanTarget]    = useState<{ lat: number; lng: number } | null>(null);
+  const [mapError,     setMapError]     = useState(false);
+
+  const { locations, deleteLocation } = useSavedLocations(user?.uid);
+
+  const {
+    fetchLocationScore,
+    scoreResult, loading: scoreLoading,
+    panelOpen, closePanel,
+    saveCurrentLocation,
+    error: scoreError,
+    activeMarker,
+  } = useScore(user, () => {});
+
+  const { markers, handleMapClick } = useMapInteractions(async (lat, lng) => {
+    await fetchLocationScore(lat, lng, selectedMonth, user?.uid);
   });
-
-  const handleSelectSaved = (loc: SavedLocation) => {
-    setIsSavedDrawerOpen(false);
-    score.fetchLocationScore(loc.lat, loc.lng, selectedMonth, user.uid);
-  };
-
-  useEffect(() => {
-    handleLocate();
-  }, []);
 
   const handleLocate = () => {
     if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setLiveLocation({ lat: latitude, lng: longitude });
-        handleMapClick(latitude, longitude);
-      },
-      (err) => {
-        console.warn("Geolocation failed on startup. Using default center.", err.message);
-      },
-      { enableHighAccuracy: true, timeout: 5000 }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      setLiveLocation(loc);
+      setPanTarget(loc);
+    });
+  };
+
+  /* Map failed to even mount */
+  if (mapError) {
+    return (
+      <div style={{
+        width:'100%', height:'100%',
+        display:'flex', flexDirection:'column',
+        alignItems:'center', justifyContent:'center',
+        background:'#F5F3EF', gap:10
+      }}>
+        <p style={{ fontSize:15, fontWeight:700, color:'#555' }}>Map unavailable</p>
+        <p style={{ fontSize:12, color:'#aaa' }}>Check your network connection</p>
+      </div>
     );
+  }
+
+  const [optimizeLoading, setOptimizeLoading] = useState(false);
+  const [simulateLoading, setSimulateLoading] = useState(false);
+
+  const handleOptimize = async () => {
+    setOptimizeLoading(true);
+    try {
+      const { apiPost } = await import('../services/api');
+      const payload = {
+        locations: locations.map(l => ({ lat: l.lat, lng: l.lng, score: l.score })),
+        hiveCount: 10,
+        useTimeOptimization: false
+      };
+      const res = await apiPost('/api/allocate-hives', payload);
+      alert(`Optimization Result:\n${JSON.stringify(res, null, 2)}`);
+    } catch(e: any) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      setOptimizeLoading(false);
+    }
+  };
+
+  const handleSimulate = async () => {
+    setSimulateLoading(true);
+    try {
+      const { apiPost } = await import('../services/api');
+      const payload = {
+        locations: locations.map(l => ({ lat: l.lat, lng: l.lng, score: l.score })),
+        hiveCount: 10,
+        iterations: 50
+      };
+      const res = await apiPost('/api/simulate', payload);
+      alert(`Simulation Result:\n${JSON.stringify(res, null, 2)}`);
+    } catch(e: any) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      setSimulateLoading(false);
+    }
   };
 
   return (
-    <>
+    <div className="map-wrapper">
+      {/* Base map + layers */}
       <MapContainer
         center={[11.1271, 78.6569]}
-        zoom={8}
-        style={{ height: 'calc(100vh - 48px)', width: '100%', zIndex: 10 }}
+        zoom={7}
+        style={{ height: '100%', width: '100%', zIndex: 1 }}
         zoomControl={false}
       >
+        {/* CARTO light — clean, fast, no API key */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
-        <HeatmapLayer 
-          selectedMonth={selectedMonth} 
-          showHeatmap={showHeatmap}
-          showMarkers={showMarkers}
-          onBestSpotFound={(lat, lng, score) => setBestSpot({ lat, lng, score })}
-        />
-        <MapClickHandler onClick={handleMapClick} />
+
+        {/* Heatmap — gracefully degrades on error */}
+        {showHeatmap && (
+          <HeatmapLayer selectedMonth={selectedMonth} onError={() => {/* silent */}} />
+        )}
+
+        <ClickHandler onPick={handleMapClick} />
+        <MapPanner target={panTarget} />
+
         {liveLocation && (
           <Marker position={[liveLocation.lat, liveLocation.lng]} icon={liveUserIcon} zIndexOffset={1000} />
         )}
-        {showBest && bestSpot && (
-          <Marker position={[bestSpot.lat, bestSpot.lng]} icon={bestSpotIcon} zIndexOffset={2000} />
-        )}
-        {score.activeMarker && score.nearbyFarmers.length > 0 && (
-          <DiscoveryPopup 
-            farmers={score.nearbyFarmers} 
-            position={[score.activeMarker.lat, score.activeMarker.lng]} 
-            onClose={() => {}} 
-          />
-        )}
-        {score.activeMarker && <MapPanner center={[score.activeMarker.lat, score.activeMarker.lng]} />}
-        {showMarkers && markers.map(m => (
+        {markers.map(m => (
           <Marker key={m.id} position={[m.lat, m.lng]} icon={hexIcon} />
         ))}
       </MapContainer>
 
-      <Legend />
-
-      {/* Layer Toggles */}
-      <div className="absolute top-20 right-6 z-[1000] flex flex-col gap-2">
-        <button
-          onClick={() => setShowBest(!showBest)}
-          className={`w-10 h-10 rounded-xl shadow-lg border flex items-center justify-center transition-all ${
-            showBest ? 'bg-amber-400 text-white border-amber-400' : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
-          }`}
-          title="Suggest Optimal Site"
-        >
-          <Sparkles size={18} />
+      {/* FAB controls */}
+      <div className="map-fabs">
+        <button className="fab fab-white" title="Saved locations" onClick={() => setIsSavedOpen(true)}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+            <polyline points="2 17 12 22 22 17"/>
+            <polyline points="2 12 12 17 22 12"/>
+          </svg>
         </button>
         <button
-          onClick={() => setShowHeatmap(!showHeatmap)}
-          className={`w-10 h-10 rounded-xl shadow-lg border flex items-center justify-center transition-all ${
-            showHeatmap ? 'bg-[#5D0623] text-white border-[#5D0623]' : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
-          }`}
-          title="Toggle Heatmap"
+          className={`fab ${showHeatmap ? 'fab-primary' : 'fab-white'}`}
+          title="Toggle heatmap"
+          onClick={() => setShowHeatmap(v => !v)}
         >
-          <MapIcon size={20} />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={showHeatmap ? 'white' : 'currentColor'} strokeWidth="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
         </button>
-        <button
-          onClick={() => setShowMarkers(!showMarkers)}
-          className={`w-10 h-10 rounded-xl shadow-lg border flex items-center justify-center transition-all ${
-            showMarkers ? 'bg-[#5D0623] text-white border-[#5D0623]' : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
-          }`}
-          title="Toggle Markers"
-        >
-          <CircleDot size={20} />
+        <button className="fab fab-primary" title="My location" onClick={handleLocate}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          </svg>
         </button>
       </div>
 
-      <LocateButton 
-        onClick={handleLocate} 
-        loading={score.loading} 
+      {/* Legend */}
+      <div className="map-legend">
+        <div className="legend-title">Suitability</div>
+        <div className="legend-row">
+          <div className="legend-dot" style={{ background: '#DC2626' }} />
+          <span className="legend-label">Low</span>
+        </div>
+        <div className="legend-row">
+          <div className="legend-dot" style={{ background: '#F59E0B' }} />
+          <span className="legend-label">Medium</span>
+        </div>
+        <div className="legend-row">
+          <div className="legend-dot" style={{ background: '#16A34A' }} />
+          <span className="legend-label">High</span>
+        </div>
+        <div className="legend-bar" />
+      </div>
+
+      {/* Score bottom sheet */}
+      <ScorePanel
+        isOpen={panelOpen}
+        result={scoreResult}
+        coords={activeMarker}
+        month={selectedMonth}
+        loading={scoreLoading}
+        error={scoreError}
+        onClose={closePanel}
+        onSave={() => saveCurrentLocation(selectedMonth)}
       />
 
+      {/* Saved locations drawer */}
       <SavedLocationsDrawer
-        isOpen={isSavedDrawerOpen}
-        onClose={() => setIsSavedDrawerOpen(false)}
-        locations={score.locations}
-        onSelect={handleSelectSaved}
-        onDelete={score.deleteLocation}
+        isOpen={isSavedOpen}
+        onClose={() => setIsSavedOpen(false)}
+        locations={locations}
+        onDelete={deleteLocation}
+        onSelect={loc => { setPanTarget({ lat: loc.lat, lng: loc.lng }); setIsSavedOpen(false); }}
+        onOptimize={handleOptimize}
+        onSimulate={handleSimulate}
+        optimizeLoading={optimizeLoading}
+        simulateLoading={simulateLoading}
       />
-
-      {score.panelOpen && (score.activeMarker || score.loading) && (
-        <ScorePanel
-          result={score.scoreResult}
-          coords={score.activeMarker}
-          month={selectedMonth}
-          loading={score.loading}
-          error={score.error}
-          onClose={score.closePanel}
-          onSave={() => score.saveCurrentLocation(selectedMonth)}
-        />
-      )}
-    </>
+    </div>
   );
 };

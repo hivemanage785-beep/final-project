@@ -1,34 +1,43 @@
 import React from 'react';
 import { Hexagon } from 'lucide-react';
 
-interface AuthScreenProps {
-  onSignIn: () => void;
-}
-
-export const AuthScreen: React.FC<AuthScreenProps> = ({ onSignIn }) => {
-  return (
-    <div className="flex bg-gray-50 items-center justify-center min-h-screen">
-      <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center max-w-sm w-full text-center">
-        <div className="w-16 h-16 bg-[#5D0623] text-white rounded-2xl flex items-center justify-center mb-4">
-          <Hexagon size={36} fill="currentColor" />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">HiveOps</h1>
-        <p className="text-gray-600 mb-8">Find the best location for your beehives.</p>
-        
-        <button 
-          onClick={onSignIn}
-          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-        >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-          Sign in with Google
-        </button>
-
-        <div className="mt-6 pt-6 border-t border-gray-100 w-full">
-          <a href="/admin" className="text-sm font-medium text-gray-500 hover:text-[#5D0623] hover:underline underline-offset-4 transition-colors">
-            Access Admin Portal &rarr;
-          </a>
-        </div>
+export const AuthScreen: React.FC<{ onSignIn: () => void }> = ({ onSignIn }) => (
+  <div className="auth-screen">
+    <div className="auth-card">
+      <div style={{
+        width: 64, height: 64, borderRadius: 18,
+        background: '#8B0000', display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        margin: '0 auto 20px'
+      }}>
+        <Hexagon size={32} color="#fff" fill="#fff" />
       </div>
+
+      <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.5px', marginBottom: 8 }}>
+        HiveOps
+      </h1>
+      <p style={{ fontSize: 14, color: '#888', marginBottom: 32, lineHeight: 1.5 }}>
+        Precision beekeeping intelligence<br />for Tamil Nadu apiaries.
+      </p>
+
+      <button
+        onClick={onSignIn}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', gap: 10,
+          background: '#fff', border: '1.5px solid #E0DDD8',
+          borderRadius: 12, padding: '13px 20px',
+          fontSize: 14, fontWeight: 700, color: '#222',
+          cursor: 'pointer', transition: 'background 0.15s'
+        }}
+      >
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" style={{ width: 18, height: 18 }} />
+        Continue with Google
+      </button>
+
+      <p style={{ fontSize: 11, color: '#bbb', marginTop: 24 }}>
+        By signing in you agree to our Terms of Service
+      </p>
     </div>
-  );
-};
+  </div>
+);

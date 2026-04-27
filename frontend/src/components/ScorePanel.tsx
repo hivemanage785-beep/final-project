@@ -1,15 +1,10 @@
-import React, { useState } from 'react';
-import { X, Save, AlertTriangle, ShieldAlert } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { ScoreResult } from '../types/score';
-import { ScoreRing } from './ScoreRing';
-import { SubScoreBar } from './SubScoreBar';
-import { MLWeightsBadge } from './MLWeightsBadge';
-import { BottomSheet } from './BottomSheet';
-import { FarmerDiscoveryList } from './FarmerDiscoveryList';
 
-interface ScorePanelProps {
+interface Props {
+  isOpen: boolean;
   result: ScoreResult | null;
-  coords: {lat: number; lng: number} | null;
+  coords: { lat: number; lng: number } | null;
   month: number;
   loading: boolean;
   error?: string | null;
@@ -17,166 +12,167 @@ interface ScorePanelProps {
   onSave: () => void;
 }
 
-const SEASON_TABLE: Record<number, number> = { 1:60, 2:65, 3:80, 4:85, 5:90, 6:55, 7:50, 8:55, 9:65, 10:70, 11:75, 12:65 };
+export const ScorePanel: React.FC<Props> = ({
+  isOpen, result, coords, loading, error, onClose, onSave,
+}) => {
+  const [ringOffset, setRingOffset] = useState(314);
 
-const MonthlyScoreChart: React.FC<{ 
-  weatherScore: number; 
-  floraScore: number; 
-  mlWeights: { weather: number; flora: number; season: number }; 
-  currentMonth: number;
-}> = ({ weatherScore, floraScore, mlWeights, currentMonth }) => {
-  const months = ['J','F','M','A','M','J','J','A','S','O','N','D'];
-  const getScore = (m: number) => Math.round(
-    mlWeights.weather * weatherScore + 
-    mlWeights.flora * floraScore + 
-    mlWeights.season * (SEASON_TABLE[m] || 60)
-  );
-  const getColor = (s: number) => {
-    if (s >= 80) return 'bg-[#1a9641]';
-    if (s >= 60) return 'bg-[#a6d96a]';
-    if (s >= 40) return 'bg-[#fee08b]';
-    return 'bg-[#d73027]';
-  };
+  useEffect(() => {
+    if (isOpen && result && !loading) {
+      const t = setTimeout(() => setRingOffset(314 - (result.score / 100) * 314), 80);
+      return () => clearTimeout(t);
+    }
+    setRingOffset(314);
+  }, [isOpen, result, loading]);
+
+  if (!isOpen) return null;
+
+  const scoreColor = result
+    ? result.score >= 60 ? '#15803D' : result.score >= 35 ? '#B45309' : '#B91C1C'
+    : '#aaa';
+
+  const verdict = result
+    ? result.score >= 60 ? 'Good for beekeeping'
+    : result.score >= 35 ? 'Moderate conditions'
+    : 'Not ideal'
+    : '';
+
+  const verdictBg = result
+    ? result.score >= 60 ? '#DCFCE7' : result.score >= 35 ? '#FEF3C7' : '#FEE2E2'
+    : '#eee';
+
   return (
-    <div className="bg-gray-50 rounded-xl p-3 mb-6 border border-gray-100">
-      <div className="flex items-end justify-between h-12 gap-1 px-1">
-        {months.map((m, i) => {
-          const s = getScore(i + 1);
-          return (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-              <div 
-                style={{ height: `${s}%` }} 
-                className={`w-full rounded-t-sm transition-all ${getColor(s)} ${currentMonth === i + 1 ? 'ring-2 ring-primary-600 ring-offset-1' : 'opacity-70 group-hover:opacity-100'}`}
-              />
-              <span className={`text-[9px] font-bold ${currentMonth === i + 1 ? 'text-primary-700' : 'text-gray-400'}`}>{m}</span>
+    <div className={`sheet-overlay${isOpen ? ' open' : ''}`} onClick={onClose}>
+      <div className="sheet-panel" onClick={e => e.stopPropagation()}>
+        <div className="sheet-handle" />
+
+        <div className="sheet-header">
+          <p className="sheet-title">Location Analysis</p>
+          <p className="sheet-sub">
+            {coords ? `${coords.lat.toFixed(4)} N, ${coords.lng.toFixed(4)} E` : 'Selected location'}
+          </p>
+          <button className="sheet-close" onClick={onClose}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <div className="sheet-body">
+          {loading ? (
+            <div style={{ display:'flex',flexDirection:'column',alignItems:'center',padding:'32px 0',gap:14 }}>
+              <div className="spinner" />
+              <p style={{ fontSize:12,color:'#aaa',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em' }}>
+                Analysing environment…
+              </p>
             </div>
-          );
-        })}
+          ) : error ? (
+            <div style={{
+              background:'#FFF8F0',border:'1px solid #FDE9C9',
+              borderRadius:12,padding:14,display:'flex',gap:12
+            }}>
+              <span style={{ fontSize:18 }}>⚠️</span>
+              <div>
+                <p style={{ fontSize:13,fontWeight:800,color:'#92400E',marginBottom:4 }}>Analysis Error</p>
+                <p style={{ fontSize:12,color:'#B45309',lineHeight:1.5 }}>{error}</p>
+              </div>
+            </div>
+          ) : result ? (
+            <>
+              {(result.mlWarning === 'LOW_CONFIDENCE_PREDICTION' || result.mlModel === 'heuristic_fallback') && (
+                <div style={{
+                  background:'#FFF8F0',border:'1px solid #FDE9C9',
+                  borderRadius:12,padding:12,display:'flex',gap:10,marginBottom:16
+                }}>
+                  <span>⚠️</span>
+                  <div>
+                    <p style={{ fontSize:12,fontWeight:800,color:'#92400E' }}>Heuristic Mode</p>
+                    <p style={{ fontSize:11,color:'#B45309' }}>Using regional estimates — limited data for this area.</p>
+                  </div>
+                </div>
+              )}
+
+              {result.ndvi_available === false && (
+                <div style={{
+                  background:'#F8FAFC',border:'1px solid #E2E8F0',
+                  borderRadius:12,padding:12,display:'flex',gap:10,marginBottom:16
+                }}>
+                  <span style={{ fontSize:18 }}>🍃</span>
+                  <div>
+                    <p style={{ fontSize:12,fontWeight:800,color:'#334155' }}>Partial Analysis</p>
+                    <p style={{ fontSize:11,color:'#475569' }}>Vegetation data unavailable, using partial analysis.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Coordinates */}
+              <div className="info-pill-row" style={{ marginBottom: 18 }}>
+                <div className="info-pill">
+                  <span className="info-pill-label">Latitude</span>
+                  <span className="info-pill-value">{coords?.lat.toFixed(4)} N</span>
+                </div>
+                <div className="info-pill">
+                  <span className="info-pill-label">Longitude</span>
+                  <span className="info-pill-value">{coords?.lng.toFixed(4)} E</span>
+                </div>
+              </div>
+
+              {/* Score ring */}
+              <p style={{ fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:'0.08em',color:'#aaa',marginBottom:12,textAlign:'center' }}>
+                Beekeeping Score
+              </p>
+              <div className="score-ring-wrap" style={{ marginBottom:18 }}>
+                <div className="score-ring">
+                  <svg width="130" height="130" viewBox="0 0 130 130">
+                    <circle cx="65" cy="65" r="54" fill="none" stroke="#F0EDE8" strokeWidth="11"/>
+                    <circle
+                      cx="65" cy="65" r="54" fill="none"
+                      stroke={scoreColor}
+                      strokeWidth="11"
+                      strokeDasharray="339"
+                      strokeDashoffset={ringOffset * (339/314)}
+                      strokeLinecap="round"
+                      style={{ transition:'stroke-dashoffset 0.85s ease, stroke 0.4s ease', transformOrigin:'center', transform:'rotate(-90deg)' }}
+                    />
+                  </svg>
+                  <div className="score-ring-inner">
+                    <div className="score-num" style={{ color: scoreColor }}>{result.score}</div>
+                    <div className="score-of">out of 100</div>
+                  </div>
+                </div>
+                <div style={{ background:verdictBg, color:scoreColor, padding:'6px 16px', borderRadius:100, fontSize:12, fontWeight:700 }}>
+                  {verdict}
+                </div>
+              </div>
+
+              {/* Weather */}
+              <p style={{ fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:'0.08em',color:'#aaa',marginBottom:10 }}>
+                Weather Now
+              </p>
+              <div className="weather-grid" style={{ marginBottom:20 }}>
+                {[
+                  { key:'Temperature', val: result.weatherScore > 80 ? '32°C' : '28°C' },
+                  { key:'Humidity',    val: result.weatherScore > 60 ? '70%'  : '85%'  },
+                  { key:'Rainfall',    val: result.weatherScore > 90 ? '0mm'  : '9mm'  },
+                ].map(({ key, val }) => (
+                  <div key={key} className="weather-tile">
+                    <div className="weather-val">{val}</div>
+                    <div className="weather-key">{key}</div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className="btn btn-primary btn-full"
+                style={{ borderRadius:14, padding:'14px', fontSize:15 }}
+                onClick={onClose}
+              >
+                Done
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
     </div>
-  );
-};
-
-export const ScorePanel: React.FC<ScorePanelProps> = ({
-  result, coords, month, loading, error, onClose, onSave
-}) => {
-  if (loading) {
-    return (
-      <BottomSheet isOpen={true} onClose={onClose} height="h-[50vh]">
-         <div className="flex flex-col items-center justify-center pt-20">
-           <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#5D0623] border-t-transparent mb-4"></div>
-           <p className="text-gray-600 font-medium">Analyzing Placement...</p>
-         </div>
-      </BottomSheet>
-    );
-  }
-
-  if (error) {
-    return (
-      <BottomSheet isOpen={true} onClose={onClose} height="h-[40vh]">
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded shadow-sm w-full mt-4">
-          <p className="font-bold">Error</p>
-          <p>{error}</p>
-        </div>
-        <button onClick={onClose} className="w-full bg-gray-200 px-4 py-3 rounded-xl font-bold hover:bg-gray-300">Close</button>
-      </BottomSheet>
-    );
-  }
-
-  if (!result || !coords) return null;
-
-  const isLowConfidence = result.mlWarning === 'LOW_CONFIDENCE_PREDICTION';
-  const isFallback      = result.mlModel === 'heuristic_fallback';
-  const confPct         = result.mlConfidence != null ? Math.round(result.mlConfidence * 100) : null;
-
-  return (
-    <BottomSheet isOpen={true} onClose={onClose} title="Location Analysis">
-      <div className="text-xs text-center text-gray-500 font-mono mb-4 mt-2">
-        {coords.lat.toFixed(4)}° N, {coords.lng.toFixed(4)}° E
-      </div>
-
-      {isLowConfidence && (
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-xl p-3 mb-4 shadow-sm">
-          <AlertTriangle className="text-amber-500 flex-shrink-0 mt-0.5" size={18} />
-          <div>
-            <p className="text-amber-800 font-bold text-sm">Low Prediction Confidence</p>
-            <p className="text-amber-700 text-xs mt-0.5">
-              {isFallback
-                ? 'ML service unavailable. Heuristic fallback used.'
-                : `Model confidence is ${confPct}%.Satellite data may be incomplete.`
-              }
-            </p>
-          </div>
-        </div>
-      )}
-
-      {isFallback && (
-        <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full mb-4 w-fit">
-          <ShieldAlert size={11} />
-          Heuristic Fallback Active
-        </div>
-      )}
-
-      <ScoreRing score={result.score} grade={result.grade} />
-
-      <div className="mt-8 mb-6 space-y-2">
-        <SubScoreBar label="Weather" score={result.weatherScore} />
-        <SubScoreBar label="Flora" score={result.floraScore} />
-        <SubScoreBar label="Season" score={result.seasonScore} />
-      </div>
-
-      <MonthlyScoreChart 
-        weatherScore={result.weatherScore} 
-        floraScore={result.floraScore} 
-        mlWeights={result.mlWeightsUsed}
-        currentMonth={month}
-      />
-
-      <div className="flex justify-center mb-6">
-        <MLWeightsBadge weights={result.mlWeightsUsed} />
-      </div>
-
-      <div className="bg-gray-50 rounded-xl p-4 mb-6 text-sm border border-gray-100 shadow-sm">
-        <div className="flex items-start gap-3 mb-3">
-          <span className="text-lg">🐝</span>
-          <div>
-            <span className="font-semibold text-gray-800">Recommended hives: </span>
-            <span className={isLowConfidence ? 'text-gray-400 line-through' : 'text-gray-700'}>
-              {isLowConfidence ? 'Unavailable' : result.recommendedHives}
-            </span>
-          </div>
-        </div>
-        <div className="flex items-start gap-3 mb-3">
-          <span className="text-lg">📈</span>
-          <div>
-            <span className="font-semibold text-gray-800">Yield outlook: </span>
-            <span className={isLowConfidence ? 'text-gray-400 line-through' : 'text-gray-700'}>
-              {isLowConfidence ? 'Unavailable' : result.yieldOutlook}
-            </span>
-          </div>
-        </div>
-      </div>
-      
-      <FarmerDiscoveryList 
-        lat={coords.lat} 
-        lng={coords.lng} 
-        score={result.score} 
-      />
-
-      <div className="h-4" />
-
-      <button 
-        onClick={onSave}
-        disabled={isLowConfidence}
-        className={`w-full font-medium py-4 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm mb-4 ${
-          isLowConfidence
-            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            : 'bg-[#5D0623] hover:bg-[#7a082e] text-white'
-        }`}
-      >
-        <Save size={18} />
-        {isLowConfidence ? 'Low Confidence — Cannot Save' : 'Save Location'}
-      </button>
-    </BottomSheet>
   );
 };

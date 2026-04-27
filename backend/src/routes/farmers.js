@@ -57,7 +57,7 @@ router.put('/:id', auth, adminAuth, async (req, res) => {
     const farmer = await Farmer.findByIdAndUpdate(
       req.params.id, 
       safeData, 
-      { new: true }
+      { returnDocument: 'after' }
     );
     res.json({ success: true, data: farmer });
   } catch (error) {
@@ -82,7 +82,7 @@ router.patch('/:id/status', auth, adminAuth, async (req, res) => {
     const farmer = await Farmer.findByIdAndUpdate(
       req.params.id, 
       { status }, 
-      { new: true }
+      { returnDocument: 'after' }
     );
     res.json({ success: true, data: farmer });
   } catch (error) {

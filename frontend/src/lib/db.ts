@@ -58,6 +58,7 @@ export interface Inspection {
   box_count: number;
   queen_status: 'healthy' | 'missing' | 'replaced';
   health_status: 'good' | 'fair' | 'poor';
+  audio_url?: string;
 }
 
 export class AppDatabase extends Dexie {
@@ -65,6 +66,7 @@ export class AppDatabase extends Dexie {
   harvests!: Table<Harvest, string>;
   inspections!: Table<Inspection, string>;
   outbox!: Table<SyncOperation, number>;
+  savedLocations!: Table<any, string>;
 
   constructor() {
     super('HiveOpsOfflineDB');
@@ -90,6 +92,15 @@ export class AppDatabase extends Dexie {
       harvests:    'id, uid, hive_id, batch_id, publicId',
       inspections: 'id, uid, hive_id, date',
       outbox:      '++id, entity, action, timestamp, dedupKey'
+    });
+
+    // Version 4 — added savedLocations
+    this.version(4).stores({
+      hives:       'id, uid, hive_id, last_inspection_date',
+      harvests:    'id, uid, hive_id, batch_id, publicId',
+      inspections: 'id, uid, hive_id, date',
+      outbox:      '++id, entity, action, timestamp, dedupKey',
+      savedLocations: 'id, uid, month, timestamp'
     });
   }
 }

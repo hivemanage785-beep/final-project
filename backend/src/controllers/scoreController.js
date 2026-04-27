@@ -1,112 +1,92 @@
-import { GeoTile } from '../models/GeoTile.js';
-import { predictMLScore } from '../integrations/mlService.js';
-import { computeWeatherScore, computeFloraScore, computeSeasonScore, computeFinalScore, deriveOutputs } from '../core/scoringEngine.js';
-import { toTileKey, toTileCoords } from '../lib/tileUtils.js';
-import { logger } from '../utils/logger.js';
+import axios from 'axios';
+import { fetchWeather } from '../integrations/weatherService.js';
+import { fetchFlora } from '../integrations/floraService.js';
+import { getNDVI, getNDVITrend } from '../integrations/ndviLookup.js';
+import { computeWeatherScore, computeFloraScore, computeSeasonScore, deriveOutputs } from '../core/scoringEngine.js';
 
 export async function scoreController(req, res, next) {
   try {
     const { lat, lng, month } = req.body;
 
-    const tileKey = toTileKey(lat, lng, month);
-    const { lat: tileLat, lng: tileLng } = toTileCoords(lat, lng);
-
-    // ─── READ-ONLY: fetch from precomputed GeoTile ───────────────────────────
-    const tile = await GeoTile.findOne({ tileKey }).lean();
-
-    // ─── TILE MISSING: return explicit error ─────────────────────────────────
-    if (!tile || tile.ttlExpires < new Date()) {
-      logger.warn(`[Score] Tile not ready for ${tileKey} — bypassing to LIVE FALLBACK`);
-      return liveScoreFallback(req, res, next, lat, lng, month);
+    // Fetch integration data
+    let weatherData, floraData;
+    try {
+      weatherData = await fetchWeather(lat, lng);
+    } catch (e) {
+      return res.status(502).json({ success: false, error: 'Weather service unavailable', message: e.message });
     }
 
-    // ─── TILE FRESH: compose response from precomputed data ──────────────────
-    const weatherScore = computeWeatherScore(tile.avgTemp ?? 28, tile.avgRain ?? 0, tile.avgWind ?? 5);
-    const floraScore   = computeFloraScore(tile.floraCount ?? 0);
-    const seasonScore  = computeSeasonScore(month);
-    const mlWeights    = { weather: 0.35, flora: 0.40, season: 0.25 };
-
-    const weatherData  = { avgTemp: tile.avgTemp, avgRain: tile.avgRain, avgWind: tile.avgWind };
-
-    let payload;
-
-    if (tile.mlScore !== null) {
-      payload = deriveOutputs(tile.mlScore, weatherScore, floraScore, seasonScore, month, weatherData, tile.floraCount, mlWeights);
-      payload.riskLevel    = tile.mlRisk;
-      payload.mlConfidence = tile.mlConfidence;
-      payload.mlWarning    = tile.mlWarning;
-      payload.mlModel      = tile.mlModel;
-    } else {
-      // ML was not run during precompute (missing env data) — use heuristic
-      const finalScore = computeFinalScore(weatherScore, floraScore, seasonScore, mlWeights);
-      payload = deriveOutputs(finalScore, weatherScore, floraScore, seasonScore, month, weatherData, tile.floraCount ?? 0, mlWeights);
-      payload.riskLevel    = finalScore > 45 ? 2 : (finalScore > 30 ? 1 : 0);
-      payload.mlConfidence = 0.3;
-      payload.mlWarning    = 'LOW_CONFIDENCE_PREDICTION';
-      payload.mlModel      = 'heuristic_fallback';
+    try {
+      floraData = await fetchFlora(lat, lng);
+    } catch (e) {
+      return res.status(502).json({ success: false, error: 'Flora service unavailable', message: e.message });
     }
 
-    payload.tileKey     = tileKey;
-    payload.dataSource  = 'precomputed';
-    payload.computedAt  = tile.computedAt;
-    payload.ndvi        = tile.ndvi;
+    const ndvi = getNDVI(lat, lng, month);
+    let ndviTrend = getNDVITrend(lat, lng, month);
+    
+    let ndviAvailable = true;
+    if (ndvi === null) {
+      ndviAvailable = false;
+      ndviTrend = 0.0;
+    }
 
-    return res.status(200).json({ success: true, data: payload });
+    // Prepare payload for ML service
+    const mlPayload = {
+      lat,
+      lng,
+      month,
+      temp: weatherData.avgTemp,
+      humidity: weatherData.avgHumidity,
+      rainfall: weatherData.avgRain,
+      ndvi: ndvi !== null ? ndvi : 0.5, // neutral value for ML only
+      ndvi_trend: ndviTrend || 0.0,
+      flora: floraData.floraCount
+    };
 
-  } catch (error) {
-    next(error);
-  }
-}
+    // Call ML service
+    let mlResponse;
+    try {
+      const mlReq = await axios.post('http://localhost:8000/predict', mlPayload, { timeout: 8000 });
+      mlResponse = mlReq.data;
+    } catch (e) {
+      console.error("ML Service Error:", e.message);
+      return res.status(502).json({ success: false, error: 'ML Prediction service unavailable', message: e.message });
+    }
 
-// ─── DEV-ONLY LIVE FALLBACK (not used in production) ─────────────────────────
-async function liveScoreFallback(req, res, next, lat, lng, month) {
-  const { fetchWeather } = await import('../integrations/weatherService.js');
-  const { fetchFlora }   = await import('../integrations/floraService.js');
-  const { fetchNDVI }    = await import('../integrations/ndviService.js');
-  const { computeWeatherScore, computeFloraScore, computeSeasonScore, computeFinalScore, deriveOutputs } = await import('../core/scoringEngine.js');
-
-  try {
-    let weatherData = { avgTemp: 28.0, avgHumidity: 65.0, avgRain: 0, avgWind: 5.0 };
-    let floraData   = { floraCount: 5 };
-    let ndviVal     = null;
-
-    const [_w, _f, _n] = await Promise.allSettled([
-      fetchWeather(lat, lng),
-      fetchFlora(lat, lng),
-      fetchNDVI(lat, lng, new Date().toISOString())
-    ]);
-    if (_w.status === 'fulfilled') weatherData = _w.value;
-    if (_f.status === 'fulfilled') floraData   = _f.value;
-    if (_n.status === 'fulfilled') ndviVal     = _n.value.ndvi;
-
-    const mlPayload = { lat, lng, month, temp: weatherData.avgTemp, humidity: weatherData.avgHumidity, rainfall: weatherData.avgRain, ndvi: ndviVal, flora: floraData.floraCount };
-
-    const mlResult = await import('../integrations/mlService.js').then(m => m.predictMLScore(mlPayload));
-
+    // Compute sub-scores for reasoning strings
     const weatherScore = computeWeatherScore(weatherData.avgTemp, weatherData.avgRain, weatherData.avgWind);
-    const floraScore   = computeFloraScore(floraData.floraCount);
-    const seasonScore  = computeSeasonScore(month);
-    const mlWeights    = { weather: 0.35, flora: 0.40, season: 0.25 };
+    const floraScore = computeFloraScore(floraData.floraCount);
+    const seasonScore = computeSeasonScore(month);
 
-    let payload;
-    if (mlResult) {
-      payload = deriveOutputs(mlResult.score, weatherScore, floraScore, seasonScore, month, weatherData, floraData.floraCount, mlWeights);
-      payload.riskLevel    = mlResult.risk;
-      payload.mlConfidence = mlResult.confidence;
-      payload.mlWarning    = mlResult.warning || null;
-      payload.mlModel      = mlResult.model || 'hybrid_rf';
-    } else {
-      const finalScore = computeFinalScore(weatherScore, floraScore, seasonScore, mlWeights);
-      payload = deriveOutputs(finalScore, weatherScore, floraScore, seasonScore, month, weatherData, floraData.floraCount, mlWeights);
-      payload.riskLevel    = finalScore > 45 ? 2 : (finalScore > 30 ? 1 : 0);
-      payload.mlConfidence = 0.3;
-      payload.mlWarning    = 'LOW_CONFIDENCE_PREDICTION';
-      payload.mlModel      = 'heuristic_fallback';
-    }
+    // Create final payload
+    const mlWeights = { weather: 0.33, flora: 0.34, season: 0.33 };
+    const payload = deriveOutputs(
+      mlResponse.score,
+      weatherScore,
+      floraScore,
+      seasonScore,
+      month,
+      weatherData,
+      floraData.floraCount,
+      mlWeights
+    );
 
-    payload.dataSource = 'live_dev_fallback';
+    // Apply ML specific mappings
+    payload.riskLevel = mlResponse.risk === 'Low' ? 0 : (mlResponse.risk === 'Moderate' ? 1 : 2);
+    payload.mlConfidence = mlResponse.confidence;
+    payload.mlWarning = mlResponse.confidence < 0.6 ? 'LOW_CONFIDENCE_PREDICTION' : null;
+    payload.mlModel = 'RandomForest_Live';
+    payload.dataSource = 'live_inference';
+    payload.computedAt = new Date();
+    payload.ndvi = ndvi;
+    payload.ndvi_available = ndviAvailable;
+
     return res.status(200).json({ success: true, data: payload });
+
   } catch (error) {
     next(error);
   }
 }
+
+

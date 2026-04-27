@@ -12,10 +12,13 @@ export interface ScoreResult {
   mlWeightsUsed: { weather: number; flora: number; season: number };
   rawWeather: { avgTemp: number; avgRain: number; avgWind: number };
   floraCount: number;
+  // Monthly 12-score array (index 0 = currentMonth, wraps around)
+  monthlyScores?: number[];
   // Confidence calibration fields
   mlConfidence?: number;
   mlWarning?: 'LOW_CONFIDENCE_PREDICTION' | null;
   mlModel?: string;
+  ndvi_available?: boolean;
 }
 
 export interface HeatmapPoint {

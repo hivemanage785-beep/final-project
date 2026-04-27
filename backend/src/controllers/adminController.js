@@ -30,7 +30,7 @@ export async function approveRequest(req, res, next) {
         approved_by: admin_id,
         approved_at: new Date()
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!request) {
@@ -65,7 +65,7 @@ export async function updateFarmerStatus(req, res, next) {
         return res.status(400).json({ success: false, error: 'Invalid status' });
     }
 
-    const farmer = await Farmer.findByIdAndUpdate(id, { status }, { new: true });
+    const farmer = await Farmer.findByIdAndUpdate(id, { status }, { returnDocument: 'after' });
     if (!farmer) return res.status(404).json({ success: false, error: 'Farmer not found' });
 
     res.status(200).json({ success: true, data: farmer });
@@ -109,7 +109,7 @@ export async function verifyBeekeeper(req, res, next) {
     const beekeeper = await User.findByIdAndUpdate(
       id, 
       { isVerified }, 
-      { new: true }
+      { returnDocument: 'after' }
     );
     
     if (!beekeeper) return res.status(404).json({ success: false, error: 'Beekeeper not found' });

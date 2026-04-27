@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { SavedLocation } from '../types/score';
+import { db } from '../lib/db';
+import { apiGet, apiPost, apiDelete } from '../services/api';
+import { useSync } from './useSync';
 
 export function useSavedLocations(uid: string | undefined) {
   const [locations, setLocations] = useState<SavedLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { queueOperation } = useSync();
 
   useEffect(() => {
     if (!uid) {
@@ -13,43 +17,82 @@ export function useSavedLocations(uid: string | undefined) {
       return;
     }
 
-    try {
-      const storageKey = `saved_locations_${uid}`;
-      const data = localStorage.getItem(storageKey);
-      if (data) {
-        setLocations(JSON.parse(data));
-      } else {
-        setLocations([]);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // Load from IndexedDB first
+        const localData = await db.savedLocations.where('uid').equals(uid).reverse().sortBy('timestamp');
+        if (localData && localData.length > 0) {
+          setLocations(localData);
+        }
+
+        // Fetch from backend
+        try {
+          const res = await apiGet('/api/saved-locations');
+          if (res && res.data) {
+            // Update IndexedDB with fresh data
+            await db.savedLocations.where('uid').equals(uid).delete();
+            const remoteData = res.data.map((item: any) => ({ ...item, uid, timestamp: new Date(item.created_at).getTime() }));
+            await db.savedLocations.bulkAdd(remoteData);
+            
+            // Reload from IndexedDB to maintain sorting
+            const refreshed = await db.savedLocations.where('uid').equals(uid).reverse().sortBy('timestamp');
+            setLocations(refreshed);
+          }
+        } catch (e) {
+          console.warn('Backend sync failed, using offline saved locations', e);
+        }
+      } catch (err: any) {
+        console.error('SavedLocations load error:', err.message);
+        setError('Failed to load saved locations.');
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      console.error('LocalStorage error:', err.message);
-      setError('Failed to load saved locations.');
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    loadData();
   }, [uid]);
 
   const saveLocation = async (location: Omit<SavedLocation, 'id' | 'timestamp'>) => {
     if (!uid) return;
-    const newLoc: SavedLocation = {
+    const newLoc: SavedLocation & { uid: string } = {
       ...location,
+      uid,
       id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(7),
       timestamp: Date.now()
     };
     
-    // Calculate new state
-    const updated = [newLoc, ...locations].slice(0, 20); // Keep max 20
+    // Update local state instantly
+    const updated = [newLoc, ...locations].slice(0, 20);
     setLocations(updated);
     
-    // Commit to storage
-    localStorage.setItem(`saved_locations_${uid}`, JSON.stringify(updated));
+    // Save to IndexedDB
+    await db.savedLocations.add(newLoc);
+    
+    // Save to Backend (via sync outbox or direct)
+    try {
+      await apiPost('/api/saved-locations', { ...newLoc, created_at: new Date(newLoc.timestamp).toISOString() });
+    } catch (err) {
+      queueOperation('savedLocations', 'create', newLoc);
+    }
   };
 
   const deleteLocation = async (id: string) => {
     if (!uid) return;
+    
+    // Update local state instantly
     const updated = locations.filter(loc => loc.id !== id);
     setLocations(updated);
-    localStorage.setItem(`saved_locations_${uid}`, JSON.stringify(updated));
+    
+    // Remove from IndexedDB
+    await db.savedLocations.delete(id);
+    
+    // Remove from Backend
+    try {
+      await apiDelete(`/api/saved-locations/${id}`);
+    } catch (err) {
+      queueOperation('savedLocations', 'delete', { id });
+    }
   };
 
   return { locations, saveLocation, deleteLocation, loading, error };

@@ -46,14 +46,14 @@ export function useSync() {
     if (!user) return;
     try {
       // Pull Hives
-      const res = await apiFetch('/api/hives', { method: 'GET' });
-      if (res && res.data) {
-        await db.hives.bulkPut(res.data);
+      const hives = await apiFetch('/api/hives', { method: 'GET' });
+      if (Array.isArray(hives)) {
+        await db.hives.bulkPut(hives);
         // Also enthusiastically pull inspections for those hives
-        for (const hive of res.data) {
-          const insRes = await apiFetch(`/api/inspections?hive_id=${hive.id}`, { method: 'GET' });
-          if(insRes && insRes.data) {
-            await db.inspections.bulkPut(insRes.data);
+        for (const hive of hives) {
+          const ins = await apiFetch(`/api/inspections?hive_id=${hive.id}`, { method: 'GET' });
+          if (Array.isArray(ins)) {
+            await db.inspections.bulkPut(ins);
           }
         }
       }

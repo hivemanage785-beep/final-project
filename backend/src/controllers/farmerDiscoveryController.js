@@ -64,7 +64,7 @@ export async function createContactRequest(req, res) {
 export async function approveContactRequest(req, res) { 
   try {
      const { request_id } = req.body;
-     const updated = await ContactRequest.findByIdAndUpdate(request_id, { status: 'approved' }, { new: true });
+     const updated = await ContactRequest.findByIdAndUpdate(request_id, { status: 'approved' }, { returnDocument: 'after' });
      res.status(200).json({ success: true, data: updated });
   } catch (err) {
      res.status(500).json({ success: false, error: err.message });

@@ -5,7 +5,7 @@ import rateLimit from 'express-rate-limit';
 //           retry aggressively and hit the cap, causing cascading 429 storms.
 export const rateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 5000, // Safely elevated for high-frequency map event polling and dev testing
   message: { success: false, error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders:   false,

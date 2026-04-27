@@ -16,25 +16,28 @@ import { Batch } from '../models/Batch.js';
 import { Inspection } from '../models/Inspection.js';
 import { Farmer } from '../models/Farmer.js';
 import { Request } from '../models/Request.js';
+import { SavedLocation } from '../models/SavedLocation.js';
 import { logger } from '../utils/logger.js';
 
 const MAX_OPS_PER_REQUEST = 100;
 
 // Allowlist of safe fields per entity — prevents NoSQL injection via spread
 const SAFE_FIELDS = {
-  hives:       ['hive_id', 'lat', 'lng', 'box_count', 'queen_status', 'health_status', 'last_inspection_date', 'notes', 'syncVersion', 'uid'],
-  harvests:    ['hive_id', 'batch_id', 'harvest_date', 'flora', 'lat', 'lng', 'notes', 'syncVersion', 'uid'],
-  inspections: ['hive_id', 'date', 'notes', 'box_count', 'queen_status', 'health_status', 'syncVersion', 'uid'],
-  requests:    ['farmerId', 'lat', 'lng', 'status', 'requested_at', 'syncVersion'],
+  hives:          ['hive_id', 'lat', 'lng', 'box_count', 'queen_status', 'health_status', 'last_inspection_date', 'notes', 'syncVersion', 'uid'],
+  harvests:       ['hive_id', 'batch_id', 'harvest_date', 'flora', 'lat', 'lng', 'notes', 'syncVersion', 'uid'],
+  inspections:    ['hive_id', 'date', 'notes', 'box_count', 'queen_status', 'health_status', 'syncVersion', 'uid'],
+  requests:       ['farmerId', 'lat', 'lng', 'status', 'requested_at', 'syncVersion'],
+  savedLocations: ['lat', 'lng', 'score', 'month', 'syncVersion', 'uid', 'created_at'],
 };
 
 const getModel = (entity) => {
   switch (entity) {
-    case 'hives':             return { model: Hive,       ownerField: 'ownerId' };
-    case 'harvests':          return { model: Batch,      ownerField: 'ownerId' };
-    case 'inspections':       return { model: Inspection, ownerField: 'uid' };
+    case 'hives':             return { model: Hive,          ownerField: 'ownerId' };
+    case 'harvests':          return { model: Batch,         ownerField: 'ownerId' };
+    case 'inspections':       return { model: Inspection,    ownerField: 'uid' };
     case 'requests':
-    case 'placementRequests': return { model: Request,    ownerField: 'beekeeperId' };
+    case 'placementRequests': return { model: Request,       ownerField: 'beekeeperId' };
+    case 'savedLocations':    return { model: SavedLocation, ownerField: 'uid' };
     default: return null;
   }
 };

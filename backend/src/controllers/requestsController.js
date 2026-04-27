@@ -29,7 +29,7 @@ export async function updateRequest(req, res, next) {
       return res.status(400).json({ success: false, error: 'Invalid status value' });
     }
 
-    const updated = await Request.findByIdAndUpdate(id, { status }, { new: true });
+    const updated = await Request.findByIdAndUpdate(id, { status }, { returnDocument: 'after' });
 
     if (!updated) {
       return res.status(404).json({ success: false, error: 'Request not found' });

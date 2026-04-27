@@ -1,9 +1,15 @@
+/**
+ * CRITICAL RULE: NEVER use native fetch() directly in frontend components.
+ * ALWAYS use this centralized API service (apiGet, apiPost, etc.) to ensure 
+ * auth tokens, interceptors, and error handling are uniformly applied.
+ */
 import axios from 'axios';
 import { auth } from '../firebase';
 
 // Standard API instance with robust token injection
+// Empty baseURL = use Vite proxy (dev) or same origin (prod)
 const api = axios.create({ 
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   headers: { 'Content-Type': 'application/json' }
 });
 
@@ -25,18 +31,29 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401 && auth.currentUser) {
+    const originalRequest = error.config;
+
+    // Detect 401 and avoid infinite loops
+    if (error.response?.status === 401 && auth.currentUser && !originalRequest._retry) {
       console.warn('[API] Token likely expired, forcing refresh');
+      originalRequest._retry = true;
       try {
         const token = await auth.currentUser.getIdToken(true);
-        if (error.config) {
-            error.config.headers.Authorization = `Bearer ${token}`;
-            return axios.request(error.config);
-        }
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest); // Retry request
       } catch (err) {
-        console.error('[API] Failed to auto-refresh token', err);
+        console.error('[API] Failed to auto-refresh token. Session expired.', err);
+        // Force logout if refresh fails
+        await auth.signOut();
+        window.location.href = '/'; 
       }
+    } else if (error.response?.status === 401) {
+       // If retry already happened and it's still 401, sign out
+       await auth.signOut();
+       window.location.href = '/';
     }
+    
+    console.error("API ERROR:", error);
     return Promise.reject(error);
   }
 );
@@ -44,8 +61,8 @@ api.interceptors.response.use(
 export default api;
 
 // Common API Helpers (Production Standardization)
-export const apiGet = async (url: string, params = {}) => {
-  const res = await api.get(url, { params });
+export const apiGet = async (url: string, config: any = {}) => {
+  const res = await api.get(url, config);
   return res.data;
 };
 

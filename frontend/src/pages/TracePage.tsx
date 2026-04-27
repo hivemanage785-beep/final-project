@@ -6,6 +6,8 @@ import {
   QrCode, CircleAlert, Hexagon, BadgeCheck
 } from 'lucide-react';
 
+import { apiGet } from '../services/api';
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface TraceData {
   publicId: string;
@@ -62,15 +64,13 @@ export const TracePage: React.FC<{ publicId: string }> = ({ publicId }) => {
   useEffect(() => {
     if (!publicId) return;
     const controller = new AbortController();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-    fetch(`${API_BASE}/api/batches/trace/${publicId}`, { signal: controller.signal })
-      .then(r => r.json())
+    apiGet(`/api/batches/trace/${publicId}`, { signal: controller.signal })
       .then(d => {
         if (d.success) setData(d.data);
         else setError(d.error || 'Batch not found');
       })
-      .catch(e => { if (e.name !== 'AbortError') setError('Failed to load batch info'); })
+      .catch(e => { if (e.name !== 'CanceledError') setError('Failed to load batch info'); })
       .finally(() => setLoading(false));
 
     return () => controller.abort();
@@ -244,7 +244,10 @@ const TraceError: React.FC<{ message: string }> = ({ message }) => (
     </div>
     <div className="text-center">
       <p className="font-bold text-gray-900 text-lg">Batch Not Found</p>
-      <p className="text-gray-500 text-sm mt-1">{message}</p>
+      <p className="text-gray-500 text-sm mt-1 mb-4">{message}</p>
+      <button onClick={() => window.location.reload()} className="px-6 py-2 bg-[#5D0623] text-white rounded-xl font-bold shadow-md active:scale-95 transition-transform">
+        Try Again
+      </button>
     </div>
   </div>
 );
