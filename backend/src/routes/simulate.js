@@ -6,10 +6,9 @@ import { logger } from '../utils/logger.js';
 
 const router = Router();
 
-// ── Input schema ──────────────────────────────────────────────────────────────
 const LocationSchema = z.object({
-  lat:   z.number().min(-90).max(90),
-  lng:   z.number().min(-180).max(180),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
   score: z.number().min(0).max(100),
   temp: z.number().optional(),
   humidity: z.number().optional(),
@@ -26,16 +25,15 @@ const SimulateSchema = z.object({
   iterations: z.number().int().min(1).max(500).optional().default(50),
 });
 
-// ── POST /api/simulate ────────────────────────────────────────────────────────
 router.post('/', scoreLimiter, async (req, res, next) => {
   try {
     const parsed = SimulateSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
         success: false,
-        error:   'INVALID_INPUT',
+        error: 'INVALID_INPUT',
         details: parsed.error.errors.map(e => ({
-          field:   e.path.join('.'),
+          field: e.path.join('.'),
           message: e.message,
         })),
       });

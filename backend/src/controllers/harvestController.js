@@ -33,7 +33,8 @@ export async function createHarvest(req, res, next) {
     });
 
     // Generate QR pointing to public trace page
-    const traceUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/trace/${newDoc.publicId}`;
+    if (!process.env.FRONTEND_URL) throw new Error("FRONTEND_URL is not configured");
+    const traceUrl = `${process.env.FRONTEND_URL}/trace/${newDoc.publicId}`;
 
     // Lock immediately when QR is generated — tamper-proof from this moment
     newDoc.qrUrl     = traceUrl;

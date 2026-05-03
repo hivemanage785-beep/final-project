@@ -19,6 +19,8 @@ interface UseScoreReturn {
   savedError: string | null;
 }
 
+let currentController: AbortController | null = null;
+
 export function useScore(user: User, setIsSavedDrawerOpen: (o: boolean) => void): UseScoreReturn {
   const [scoreResult, setScoreResult] = useState<ScoreResult | null>(null);
   const [nearbyFarmers, setNearbyFarmers] = useState<PartnerFarmer[]>([]);
@@ -32,16 +34,41 @@ export function useScore(user: User, setIsSavedDrawerOpen: (o: boolean) => void)
   const fetchLocationScore = async (lat: number, lng: number, month: number, uid: string) => {
     setActiveMarker({ lat, lng });
     setPanelOpen(true);
+    
+    if (!navigator.onLine) {
+      setError("Prediction unavailable offline. Please reconnect to analyze location.");
+      setScoreResult(null);
+      setLoading(false);
+      return;
+    }
+
+    if (currentController) {
+      currentController.abort();
+    }
+    currentController = new AbortController();
+
     setLoading(true);
     setError(null);
     setScoreResult(null);
     setNearbyFarmers([]);
 
     try {
-      const [data, farmers] = await Promise.all([
-        fetchScore(lat, lng, month),
+      const url = `${import.meta.env.VITE_BACKEND_URL}/api/score`;
+      const [dataResponse, farmers] = await Promise.all([
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lng, month }),
+          signal: currentController.signal
+        }),
         fetchNearbyFarmers(lat, lng).catch(() => [] as PartnerFarmer[])
       ]);
+
+      if (!dataResponse.ok) {
+        throw new Error('HTTP error ' + dataResponse.status);
+      }
+      const dataJson = await dataResponse.json();
+      const data = dataJson.data !== undefined ? dataJson.data : dataJson;
 
       setScoreResult(data);
       setNearbyFarmers(farmers);
@@ -60,9 +87,18 @@ export function useScore(user: User, setIsSavedDrawerOpen: (o: boolean) => void)
         uid
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to analyze location.');
+      if (err.name === 'AbortError') {
+        // DO NOTHING (silent cancel)
+      } else {
+        setError('Unable to fetch prediction. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      // Only clear loading if we didn't just abort to start a new one
+      if (currentController && !currentController.signal.aborted) {
+        setLoading(false);
+      } else if (!currentController) {
+        setLoading(false);
+      }
     }
   };
 

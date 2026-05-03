@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface BottomSheetProps {
@@ -11,29 +12,29 @@ interface BottomSheetProps {
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, children, height = 'max-h-[85vh]' }) => {
-  return (
+  const content = (
     <AnimatePresence>
       {isOpen && (
-        <>
+        <motion.div key="modal-wrapper" className="fixed inset-0 z-[5000] pointer-events-none flex flex-col justify-end">
           {/* Backdrop */}
           <motion.div
+            className="absolute inset-0 bg-black/40 pointer-events-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/40 z-[5000]"
           />
           
           {/* Sheet */}
           <motion.div
+            className={`relative w-full bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] flex flex-col pointer-events-auto ${height}`}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`absolute bottom-0 left-0 w-full bg-white rounded-t-3xl z-[5001] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] flex flex-col ${height}`}
           >
             {/* Handle bar */}
-            <div className="w-full flex justify-center pt-3 pb-1" onClick={onClose}>
+            <div className="w-full flex justify-center pt-3 pb-1 cursor-pointer" onClick={onClose}>
               <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
             </div>
 
@@ -52,8 +53,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
               {children}
             </div>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );
+
+  return typeof document !== 'undefined' ? createPortal(content, document.body) : null;
 };

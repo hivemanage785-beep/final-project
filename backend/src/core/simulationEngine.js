@@ -1,30 +1,14 @@
-/**
- * simulationEngine.js
- *
- * Compares random hive placement against optimised placement
- * (via allocationEngine) over a configurable number of iterations.
- *
- * Pure function — no DB, no I/O, no external dependencies.
- *
- * Exported function:
- *   runSimulation(locations, hiveCount, iterations?)
- */
 
 import { allocateHives, optimizeOverTime } from './allocationEngine.js';
 import { generateMonthlyScores } from '../integrations/mlService.js';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-// Simple seeded PRNG (Mulberry32) to enforce determinism
 function mulberry32(a) {
-    return function() {
-      var t = a += 0x6D2B79F5;
-      t = Math.imul(t ^ t >>> 15, t | 1);
-      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
-    }
+  return function () {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
 }
-
 function sampleIndicesSeeded(n, k, randomFunc) {
   const indices = new Array(n);
   for (let i = 0; i < n; i++) indices[i] = i;
@@ -32,44 +16,49 @@ function sampleIndicesSeeded(n, k, randomFunc) {
   const limit = Math.min(k, n);
   for (let i = 0; i < limit; i++) {
     const j = i + Math.floor(randomFunc() * (n - i));
-    const tmp  = indices[i];
+    const tmp = indices[i];
     indices[i] = indices[j];
     indices[j] = tmp;
   }
   return indices.slice(0, limit);
 }
-
-// ── Core simulation function ──────────────────────────────────────────────────
-
 export async function runSimulation(locations, hiveCount, iterations = 50, months = 3) {
   const safeIterations = Math.max(0, Math.floor(iterations));
-  const safeHiveCount  = Math.max(0, Math.floor(hiveCount));
-  const safeMonths     = Math.max(1, Math.floor(months));
+  const safeHiveCount = Math.max(0, Math.floor(hiveCount));
+  const safeMonths = Math.max(1, Math.floor(months));
 
   const valid = Array.isArray(locations)
     ? locations.filter(
-        (loc) =>
-          loc != null &&
-          typeof loc.lat   === 'number' && isFinite(loc.lat)   &&
-          typeof loc.lng   === 'number' && isFinite(loc.lng)   &&
-          typeof loc.score === 'number' && isFinite(loc.score)
-      )
+      (loc) =>
+        loc != null &&
+        typeof loc.lat === 'number' && isFinite(loc.lat) &&
+        typeof loc.lng === 'number' && isFinite(loc.lng) &&
+        typeof loc.score === 'number' && isFinite(loc.score)
+    )
     : [];
 
   const effectiveN = Math.min(safeHiveCount, valid.length);
 
   if (valid.length === 0 || effectiveN === 0 || safeIterations === 0) {
     return {
-      random_avg:          0,
-      optimized_avg:       0,
+      random_avg: 0,
+      optimized_avg: 0,
       improvement_percent: 0,
-      iterations_run:      0,
-      hive_count:          effectiveN,
-      sample_size:         valid.length,
+      iterations_run: 0,
+      hive_count: effectiveN,
+      sample_size: valid.length,
     };
   }
 
-  // 1. Generate real monthlyScores using ML model 
+  if (valid.length < 2) {
+    return {
+      message: 'Need multiple locations for meaningful simulation',
+      improvement_percent: null,
+      iterations_run: 0,
+      hive_count: effectiveN,
+      sample_size: valid.length,
+    };
+  }
   const currentMonth = new Date().getMonth() + 1;
   for (const loc of valid) {
     if (!Array.isArray(loc.monthlyScores) || loc.monthlyScores.length < safeMonths) {
@@ -82,45 +71,34 @@ export async function runSimulation(locations, hiveCount, iterations = 50, month
     }
   }
 
-  // ── Pre-compute Optimized Plan ────────────────────────────────────────────────
   const optimizedData = optimizeOverTime(valid, effectiveN, [], safeMonths);
   let optimized_total_once = 0;
   for (const rec of optimizedData.recommendations) {
     optimized_total_once += rec.total_score;
   }
 
-  // ── Time-Progressive Simulation Loop ──────────────────────────────────────────
   const randomFunc = mulberry32(12345);
   let total_random_yield = 0;
   let total_optimized_yield = 0;
 
   for (let iter = 0; iter < safeIterations; iter++) {
     let current_iter_random = 0;
-    
-    for (let m = 0; m < safeMonths; m++) {
-      // 1. Generate environment for that month: evaluate month-specific ML prediction
-      const monthLocations = valid.map(loc => ({
-          ...loc,
-          score: loc.monthlyScores && loc.monthlyScores[m] !== undefined ? loc.monthlyScores[m] : loc.score
-      }));
 
-      // 2. For RANDOM strategy: randomly assign hives for THIS month and compute yield
+    for (let m = 0; m < safeMonths; m++) {
+      const monthLocations = valid.map(loc => ({
+        ...loc,
+        score: loc.monthlyScores && loc.monthlyScores[m] !== undefined ? loc.monthlyScores[m] : loc.score
+      }));
       const sampled = sampleIndicesSeeded(monthLocations.length, effectiveN, randomFunc);
       for (const i of sampled) {
         current_iter_random += monthLocations[i].score;
       }
     }
-
-    // 4. accumulate yield across months
     total_random_yield += current_iter_random;
     total_optimized_yield += optimized_total_once;
   }
-
-  // Expected accumulated score per hive across N months
   const random_avg = parseFloat(((total_random_yield / safeIterations) / effectiveN).toFixed(4));
   const optimized_avg = parseFloat(((total_optimized_yield / safeIterations) / effectiveN).toFixed(4));
-
-  // 4. Compute Improvement Percent
   const improvement_percent =
     random_avg === 0
       ? 0
@@ -131,8 +109,8 @@ export async function runSimulation(locations, hiveCount, iterations = 50, month
     optimized_avg,
     improvement_percent,
     iterations_run: safeIterations,
-    hive_count:     effectiveN,
-    sample_size:    valid.length,
+    hive_count: effectiveN,
+    sample_size: valid.length,
     months_simulated: safeMonths
   };
 }

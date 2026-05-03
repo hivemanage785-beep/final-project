@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import { ScorePanel } from './ScorePanel';
 import { SavedLocationsDrawer } from './SavedLocationsDrawer';
+import { AddHiveSheet } from './AddHiveSheet';
 import { useScore } from '../hooks/useScore';
 import { useSavedLocations } from '../hooks/useSavedLocations';
-import { useMapInteractions, hexIcon, liveUserIcon } from '../hooks/useMapInteractions';
-import HeatmapLayer from './DeckHeatmapLayer';
+import { liveUserIcon, crosshairIcon } from '../hooks/useMapInteractions';
+import { apiGet } from '../services/api';
 
 /* Fix default leaflet icon paths */
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -17,6 +18,16 @@ L.Icon.Default.mergeOptions({
   iconUrl:       'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl:     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+const getSuggestionIcon = (score: number) => {
+  const color = score > 60 ? '#15803D' : score >= 30 ? '#B45309' : '#B91C1C';
+  return new L.DivIcon({
+    html: `<svg width="24" height="24" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>`,
+    className: 'suggestion-marker',
+    iconSize: [24, 24],
+    iconAnchor: [12, 24],
+  });
+};
 
 /* ── Internal helpers ── */
 const ClickHandler: React.FC<{ onPick: (lat: number, lng: number) => void }> = ({ onPick }) => {
@@ -36,11 +47,17 @@ const MapPanner: React.FC<{ target?: { lat: number; lng: number } | null }> = ({
 export interface MapInnerProps { selectedMonth: number; user: any; }
 
 export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
-  const [showHeatmap,  setShowHeatmap]  = useState(true);
   const [isSavedOpen,  setIsSavedOpen]  = useState(false);
   const [liveLocation, setLiveLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [panTarget,    setPanTarget]    = useState<{ lat: number; lng: number } | null>(null);
   const [mapError,     setMapError]     = useState(false);
+  const [suggestions,  setSuggestions]  = useState<any[]>([]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [isAddHiveOpen, setIsAddHiveOpen] = useState(false);
 
   const { locations, deleteLocation } = useSavedLocations(user?.uid);
 
@@ -53,9 +70,23 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
     activeMarker,
   } = useScore(user, () => {});
 
-  const { markers, handleMapClick } = useMapInteractions(async (lat, lng) => {
+  const fetchSuggestions = async (lat: number, lng: number) => {
+    try {
+      const data = await apiGet(`/api/suggestions?lat=${lat}&lng=${lng}&month=${selectedMonth}`);
+      if (Array.isArray(data)) setSuggestions(data);
+    } catch (err) {
+      console.error('Suggestions error', err);
+    }
+  };
+
+  const handleMapClick = async (lat: number, lng: number) => {
+    setSelectedLocation({ lat, lng });
     await fetchLocationScore(lat, lng, selectedMonth, user?.uid);
-  });
+  };
+
+  const handleUseLocation = () => {
+    setIsAddHiveOpen(true);
+  };
 
   const handleLocate = () => {
     if (!navigator.geolocation) return;
@@ -63,8 +94,39 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
       const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       setLiveLocation(loc);
       setPanTarget(loc);
+      fetchSuggestions(loc.lat, loc.lng);
+    }, err => {
+      // fallback
+      fetchSuggestions(11.1271, 78.6569);
     });
   };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        setPanTarget({ lat, lng: lon });
+        fetchSuggestions(lat, lon);
+      } else {
+        alert('Location not found');
+      }
+    } catch (err) {
+      alert('Search failed');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    handleLocate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* Map failed to even mount */
   if (mapError) {
@@ -122,6 +184,22 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
 
   return (
     <div className="map-wrapper">
+      {/* Search Bar */}
+      <div style={{ position: 'absolute', top: 20, left: 20, right: 20, zIndex: 1000 }}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, background: 'white', padding: '6px 12px', borderRadius: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }}>
+          <input
+            type="text"
+            placeholder="Search location..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ border: 'none', outline: 'none', flex: 1, fontSize: 14 }}
+          />
+          <button type="submit" disabled={searchLoading} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555' }}>
+            {searchLoading ? '...' : '🔍'}
+          </button>
+        </form>
+      </div>
+
       {/* Base map + layers */}
       <MapContainer
         center={[11.1271, 78.6569]}
@@ -135,19 +213,31 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
 
-        {/* Heatmap — gracefully degrades on error */}
-        {showHeatmap && (
-          <HeatmapLayer selectedMonth={selectedMonth} onError={() => {/* silent */}} />
-        )}
-
         <ClickHandler onPick={handleMapClick} />
         <MapPanner target={panTarget} />
 
         {liveLocation && (
           <Marker position={[liveLocation.lat, liveLocation.lng]} icon={liveUserIcon} zIndexOffset={1000} />
         )}
-        {markers.map(m => (
-          <Marker key={m.id} position={[m.lat, m.lng]} icon={hexIcon} />
+        {panelOpen && activeMarker && (
+          <Marker position={[activeMarker.lat, activeMarker.lng]} icon={crosshairIcon} />
+        )}
+
+        {/* Suggestion Markers */}
+        {suggestions.map((sug, i) => (
+          <Marker 
+            key={i} 
+            position={[sug.lat, sug.lng]} 
+            icon={getSuggestionIcon(sug.score)}
+            eventHandlers={{ click: () => handleMapClick(sug.lat, sug.lng) }}
+          >
+            <Popup>
+              <div>Score: {sug.score}</div>
+              <div style={{ marginTop: '4px', fontSize: '11px', color: '#555' }}>
+                Reason: Based on favorable environmental conditions (temperature, rainfall, humidity).
+              </div>
+            </Popup>
+          </Marker>
         ))}
       </MapContainer>
 
@@ -158,16 +248,6 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
             <polygon points="12 2 2 7 12 12 22 7 12 2"/>
             <polyline points="2 17 12 22 22 17"/>
             <polyline points="2 12 12 17 22 12"/>
-          </svg>
-        </button>
-        <button
-          className={`fab ${showHeatmap ? 'fab-primary' : 'fab-white'}`}
-          title="Toggle heatmap"
-          onClick={() => setShowHeatmap(v => !v)}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={showHeatmap ? 'white' : 'currentColor'} strokeWidth="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-            <circle cx="12" cy="10" r="3"/>
           </svg>
         </button>
         <button className="fab fab-primary" title="My location" onClick={handleLocate}>
@@ -182,16 +262,16 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
       <div className="map-legend">
         <div className="legend-title">Suitability</div>
         <div className="legend-row">
-          <div className="legend-dot" style={{ background: '#DC2626' }} />
-          <span className="legend-label">Low</span>
+          <div className="legend-dot" style={{ background: '#B71C1C' }} />
+          <span className="legend-label">Poor</span>
         </div>
         <div className="legend-row">
-          <div className="legend-dot" style={{ background: '#F59E0B' }} />
-          <span className="legend-label">Medium</span>
+          <div className="legend-dot" style={{ background: '#F57C00' }} />
+          <span className="legend-label">Moderate</span>
         </div>
         <div className="legend-row">
-          <div className="legend-dot" style={{ background: '#16A34A' }} />
-          <span className="legend-label">High</span>
+          <div className="legend-dot" style={{ background: '#1B5E20' }} />
+          <span className="legend-label">Good</span>
         </div>
         <div className="legend-bar" />
       </div>
@@ -206,7 +286,21 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
         error={scoreError}
         onClose={closePanel}
         onSave={() => saveCurrentLocation(selectedMonth)}
+        onRetry={() => {
+          if (activeMarker) fetchLocationScore(activeMarker.lat, activeMarker.lng, selectedMonth, user?.uid);
+        }}
+        onUseLocation={handleUseLocation}
       />
+
+      {isAddHiveOpen && selectedLocation && (
+        <AddHiveSheet 
+          isOpen={isAddHiveOpen} 
+          onClose={() => setIsAddHiveOpen(false)} 
+          onAdded={() => { setIsAddHiveOpen(false); }}
+          initialLat={selectedLocation.lat}
+          initialLng={selectedLocation.lng}
+        />
+      )}
 
       {/* Saved locations drawer */}
       <SavedLocationsDrawer

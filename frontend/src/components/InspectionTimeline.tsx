@@ -16,7 +16,7 @@ export const InspectionTimeline: React.FC<Props> = ({ hiveId }) => {
   if (inspections.length === 0) {
     return (
       <div className="text-center py-6 text-gray-400 bg-gray-50 rounded-2xl border border-gray-100">
-        <p className="text-sm">No inspections recorded.</p>
+        <p className="text-sm">No logs recorded yet.</p>
       </div>
     );
   }

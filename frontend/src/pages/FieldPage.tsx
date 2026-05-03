@@ -16,7 +16,7 @@ export const FieldPage = ({ user }: any) => {
       <div className="field-topbar">
         <div>
           <p style={{ fontSize:20,fontWeight:800,letterSpacing:'-0.3px',lineHeight:1.2 }}>Field</p>
-          <p style={{ fontSize:11,color:'#999',fontWeight:500,marginTop:2 }}>Tap map to analyse location</p>
+          <p style={{ fontSize:11,color:'#999',fontWeight:500,marginTop:2 }}>Tap anywhere on the map to check if it is good for placing hives</p>
         </div>
 
         <div style={{ display:'flex',alignItems:'center',gap:10 }}>

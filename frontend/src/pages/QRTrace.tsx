@@ -8,10 +8,27 @@ import { QrCode, Plus, Search, Archive, ChevronRight, X, ScanLine, Lock, ShieldC
 import { motion, AnimatePresence } from 'motion/react';
 import { BottomSheet } from '../components/BottomSheet';
 
+import { useParams } from 'react-router-dom';
+import { apiGet } from '../services/api';
+
 export const QRTrace: React.FC = () => {
+  const { batchId } = useParams<{ batchId: string }>();
   const { user } = useAuth();
   const { queueOperation } = useSync();
   const [activeTab, setActiveTab] = useState<'generate' | 'scan'>('generate');
+  const [traceData, setTraceData] = useState<any>(null);
+  const [traceLoading, setTraceLoading] = useState(false);
+  const [traceError, setTraceError] = useState('');
+
+  React.useEffect(() => {
+    if (batchId) {
+      setTraceLoading(true);
+      apiGet(`/api/harvests/trace/${batchId}`)
+        .then(data => setTraceData(data))
+        .catch(err => setTraceError(err.message || 'Trace not found'))
+        .finally(() => setTraceLoading(false));
+    }
+  }, [batchId]);
   
   const harvests = useLiveQuery(() => db.harvests.where('uid').equals(user?.uid || '').reverse().toArray(), [user]) || [];
   const hives = useLiveQuery(() => db.hives.where('uid').equals(user?.uid || '').toArray(), [user]) || [];
@@ -59,6 +76,51 @@ export const QRTrace: React.FC = () => {
     if (status === 'rejected') return { label: 'Rejected', color: 'text-red-600 bg-red-50', icon: ShieldX };
     return { label: 'Pending', color: 'text-amber-600 bg-amber-50', icon: Clock };
   };
+
+  if (batchId) {
+    if (traceLoading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading trace data...</div>;
+    if (traceError) return <div style={{ padding: 40, textAlign: 'center', color: 'red' }}>{traceError}</div>;
+    if (!traceData) return null;
+    
+    return (
+      <div className="flex-1 bg-gray-50 h-full w-full pb-20 flex flex-col overflow-y-auto">
+        <div className="bg-white px-4 py-6 border-b border-gray-100 shadow-sm">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Traceability Report</h1>
+          <p className="text-sm text-gray-500">Batch: {batchId}</p>
+        </div>
+        
+        <div className="p-4 space-y-4">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="font-bold text-lg mb-4 text-[#5D0623]">Harvest Details</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500">Flora</p>
+                <p className="font-bold">{traceData.flora || 'Unknown'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Date</p>
+                <p className="font-bold">{traceData.harvest_date ? new Date(traceData.harvest_date).toLocaleDateString() : 'Unknown'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Beekeeper</p>
+                <p className="font-bold">{traceData.beekeeper_name || 'Partner Beekeeper'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Location</p>
+                <p className="font-bold">{(traceData.location?.lat_approx || traceData.lat)?.toFixed(2)} N, {(traceData.location?.lng_approx || traceData.lng)?.toFixed(2)} E</p>
+              </div>
+            </div>
+            
+            <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <p className="text-sm text-gray-600">
+                This data is recorded by the beekeeper and supported by environmental analysis. It improves transparency but does not guarantee authenticity.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 bg-gray-50 h-full w-full pb-20 flex flex-col relative overflow-hidden">
@@ -190,6 +252,7 @@ export const QRTrace: React.FC = () => {
       <BottomSheet isOpen={selectedBatch !== null} onClose={() => setSelectedBatch(null)} title="Consumer Traceability">
          {selectedBatch && (
            <div className="flex flex-col items-center pb-8 pt-2">
+              <p className="text-sm text-gray-600 text-center mb-4 px-4">This batch is linked to its hive and location data, allowing verification of honey origin and authenticity.</p>
               <div className="bg-white p-4 rounded-3xl shadow-lg border border-gray-100 mb-6">
                  <QRCodeSVG value={getTraceUrl(selectedBatch)} size={200} level="H" includeMargin={true} />
               </div>
@@ -236,6 +299,7 @@ export const QRTrace: React.FC = () => {
                    </div>
                  )}
               </div>
+              <p className="text-xs text-gray-500 text-center mt-4 px-4">All information is derived from recorded hive data and verified system records.</p>
            </div>
          )}
       </BottomSheet>

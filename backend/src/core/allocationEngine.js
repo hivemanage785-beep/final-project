@@ -1,25 +1,7 @@
-/**
- * allocationEngine.js
- *
- * Deterministic hive placement allocation engine.
- * Pure function — no DB writes, no API calls, no external dependencies.
- *
- * Exported functions:
- *   allocateHives(locations, hiveCount, currentHiveLocations?)
- *   optimizeOverTime(locations, hiveCount, currentHiveLocations?, months?)
- *   distance(lat1, lng1, lat2, lng2)
- *   getTopKLocations(locations, k)
- */
-
 import { logger } from '../utils/logger.js';
 
-// ── Tuning constant ───────────────────────────────────────────────────────────
-// Score deducted per kilometre of movement from the nearest current hive.
-// Scores are in the range 0–100. Tamil Nadu max diagonal ≈ 600 km.
-// At 0.05 pts/km a 100km relocation costs 5 points — meaningful but non-dominant.
 const MOVEMENT_PENALTY_PER_KM = 0.05;
 
-// ── Haversine distance (km) ───────────────────────────────────────────────────
 /**
  * Returns the great-circle distance in kilometres between two lat/lng points.
  * Uses the Haversine formula — no external libraries required.
@@ -31,10 +13,10 @@ const MOVEMENT_PENALTY_PER_KM = 0.05;
  * @returns {number} distance in km
  */
 function haversineKm(lat1, lng1, lat2, lng2) {
-  const R    = 6371;                         // Earth radius in km
+  const R = 6371;                         // Earth radius in km
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
-  const a    =
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
     Math.sin(dLng / 2) * Math.sin(dLng / 2);
@@ -46,7 +28,6 @@ function toRad(degrees) {
   return degrees * (Math.PI / 180);
 }
 
-// ── Core allocation function ──────────────────────────────────────────────────
 /**
  * Selects the optimal hive placement locations from a scored candidate list.
  *
@@ -67,7 +48,6 @@ function toRad(degrees) {
  *   `adjusted_score` — score after movement penalty (clamped to 0).
  */
 export function allocateHives(locations, hiveCount, currentHiveLocations = []) {
-  // ── Input validation ────────────────────────────────────────────────────────
   if (!Array.isArray(locations) || locations.length === 0) {
     return [];
   }
@@ -77,29 +57,24 @@ export function allocateHives(locations, hiveCount, currentHiveLocations = []) {
 
   const hasCurrent = Array.isArray(currentHiveLocations) && currentHiveLocations.length > 0;
 
-  // ── Step 1: Validate and normalise inputs ───────────────────────────────────
   const valid = locations.filter(
     (loc) =>
       loc != null &&
-      typeof loc.lat   === 'number' && isFinite(loc.lat) &&
-      typeof loc.lng   === 'number' && isFinite(loc.lng) &&
+      typeof loc.lat === 'number' && isFinite(loc.lat) &&
+      typeof loc.lng === 'number' && isFinite(loc.lng) &&
       typeof loc.score === 'number' && isFinite(loc.score)
   );
 
   if (valid.length === 0) return [];
 
-  // ── Step 2: Sort by raw score descending ───────────────────────────────────
   const sorted = [...valid].sort((a, b) => b.score - a.score);
 
-  // ── Step 3: Select top N ───────────────────────────────────────────────────
   const selected = sorted.slice(0, n);
 
-  // ── Step 4: Apply movement penalty (if current locations supplied) ──────────
   const result = selected.map((loc) => {
     let penalty = 0;
 
     if (hasCurrent) {
-      // Find the minimum distance from this candidate to any current hive
       let minDistKm = Infinity;
       for (const cur of currentHiveLocations) {
         if (
@@ -107,13 +82,12 @@ export function allocateHives(locations, hiveCount, currentHiveLocations = []) {
           typeof cur.lat !== 'number' || !isFinite(cur.lat) ||
           typeof cur.lng !== 'number' || !isFinite(cur.lng)
         ) {
-          continue; // skip malformed entries
+          continue;
         }
         const dist = haversineKm(cur.lat, cur.lng, loc.lat, loc.lng);
         if (dist < minDistKm) minDistKm = dist;
       }
 
-      // Only apply penalty when a valid current hive was found
       if (isFinite(minDistKm)) {
         penalty = minDistKm * MOVEMENT_PENALTY_PER_KM;
       }
@@ -122,37 +96,22 @@ export function allocateHives(locations, hiveCount, currentHiveLocations = []) {
     const adjusted_score = Math.max(0, parseFloat((loc.score - penalty).toFixed(2)));
 
     return {
-      lat:            loc.lat,
-      lng:            loc.lng,
-      score:          loc.score,
+      lat: loc.lat,
+      lng: loc.lng,
+      score: loc.score,
       adjusted_score,
     };
   });
 
-  // ── Step 5: Return sorted by adjusted_score descending ──────────────────────
-  // Re-sort so callers always receive the best adjusted locations first.
   result.sort((a, b) => b.adjusted_score - a.adjusted_score);
 
   return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TIME-BASED OPTIMIZATION  (additive — allocateHives above is unchanged)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-const TOP_K_MAX = 10;     // maximum candidates considered per month
-const MAX_PATHS = 10000;  // hard ceiling on total enumerated paths (K^months)
-
-// ── Private helpers ───────────────────────────────────────────────────────────
-
-/**
- * Returns the representative score for a location across its full planning
- * horizon: mean of monthlyScores when present, otherwise .score.
- */
+const TOP_K_MAX = 10;
+const MAX_PATHS = 10000;
 function getEffectiveScore(loc) {
   if (!Array.isArray(loc.monthlyScores) || loc.monthlyScores.length === 0) {
-    // Graceful degradation: monthly ML scores missing — use static score as mean proxy
     logger.warn(`[Allocation] monthlyScores missing for loc(${loc.lat},${loc.lng}) — using static score`);
     return typeof loc.score === 'number' && isFinite(loc.score) ? loc.score : 0;
   }
@@ -160,14 +119,8 @@ function getEffectiveScore(loc) {
   return sum / loc.monthlyScores.length;
 }
 
-/**
- * Returns the predicted score for a location at a given month (0-based index).
- * Clamps to the last available month rather than wrapping to avoid phantom cycles.
- * Falls back to .score if monthlyScores is absent.
- */
 function getScoreForMonth(loc, monthIndex) {
   if (!Array.isArray(loc.monthlyScores) || loc.monthlyScores.length <= monthIndex) {
-    // Graceful degradation: clamp to last available month score, or static score
     logger.warn(`[Allocation] monthlyScores[${monthIndex}] missing for loc(${loc.lat},${loc.lng}) — clamping`);
     if (Array.isArray(loc.monthlyScores) && loc.monthlyScores.length > 0) {
       const v = loc.monthlyScores[loc.monthlyScores.length - 1];
@@ -179,22 +132,9 @@ function getScoreForMonth(loc, monthIndex) {
   return typeof v === 'number' && isFinite(v) ? v : 0;
 }
 
-// ── Public helper: distance ───────────────────────────────────────────────────
-/**
- * Public Haversine distance alias.
- * Returns the great-circle distance in kilometres between two points.
- *
- * @param {number} lat1
- * @param {number} lng1
- * @param {number} lat2
- * @param {number} lng2
- * @returns {number} km
- */
 export function distance(lat1, lng1, lat2, lng2) {
   return haversineKm(lat1, lng1, lat2, lng2);
 }
-
-// ── Public helper: getTopKLocations ──────────────────────────────────────────
 /**
  * Returns the top-K locations ranked by effective score
  * (mean of monthlyScores when present, else .score).
@@ -211,7 +151,6 @@ export function getTopKLocations(locations, k) {
     .slice(0, safeK);
 }
 
-// ── Core: optimizeOverTime ────────────────────────────────────────────────────
 /**
  * Selects multi-month movement plans for hiveCount hives using bounded path search.
  *
@@ -250,19 +189,19 @@ export function getTopKLocations(locations, k) {
 export function optimizeOverTime(locations, hiveCount, currentHiveLocations = [], months = 3) {
 
   // ── 1. Guard and normalise inputs ─────────────────────────────────────────
-  const safeMonths    = Math.min(Math.max(1, Math.floor(months)), 12);
+  const safeMonths = Math.min(Math.max(1, Math.floor(months)), 12);
   const safeHiveCount = Math.max(0, Math.floor(hiveCount));
 
   const valid = Array.isArray(locations)
     ? locations.filter(loc =>
-        loc != null &&
-        typeof loc.lat === 'number' && isFinite(loc.lat) &&
-        typeof loc.lng === 'number' && isFinite(loc.lng) &&
-        (
-          (Array.isArray(loc.monthlyScores) && loc.monthlyScores.length > 0) ||
-          (typeof loc.score === 'number' && isFinite(loc.score))
-        )
+      loc != null &&
+      typeof loc.lat === 'number' && isFinite(loc.lat) &&
+      typeof loc.lng === 'number' && isFinite(loc.lng) &&
+      (
+        (Array.isArray(loc.monthlyScores) && loc.monthlyScores.length > 0) ||
+        (typeof loc.score === 'number' && isFinite(loc.score))
       )
+    )
     : [];
 
   if (valid.length === 0 || safeHiveCount === 0) {
@@ -286,8 +225,8 @@ export function optimizeOverTime(locations, hiveCount, currentHiveLocations = []
     );
     candidatesPerMonth.push(
       sorted.slice(0, effectiveK).map(loc => ({
-        lat:   loc.lat,
-        lng:   loc.lng,
+        lat: loc.lat,
+        lng: loc.lng,
         score: getScoreForMonth(loc, t),
       }))
     );
@@ -308,21 +247,21 @@ export function optimizeOverTime(locations, hiveCount, currentHiveLocations = []
   }
 
   // ── 5. Assign plans to hives — each scored against that hive's current pos ─
-  const usedStartKeys   = new Set(); // month-1 location keys already assigned
+  const usedStartKeys = new Set(); // month-1 location keys already assigned
   const recommendations = [];
 
   for (let hiveIndex = 0; hiveIndex < safeHiveCount; hiveIndex++) {
 
     // Retrieve this hive's current position safely
-    const curEntry  = Array.isArray(currentHiveLocations) ? currentHiveLocations[hiveIndex] : null;
-    const curPos    =
+    const curEntry = Array.isArray(currentHiveLocations) ? currentHiveLocations[hiveIndex] : null;
+    const curPos =
       curEntry != null &&
-      typeof curEntry.lat === 'number' && isFinite(curEntry.lat) &&
-      typeof curEntry.lng === 'number' && isFinite(curEntry.lng)
+        typeof curEntry.lat === 'number' && isFinite(curEntry.lat) &&
+        typeof curEntry.lng === 'number' && isFinite(curEntry.lng)
         ? curEntry
         : null;
 
-    let bestPath  = null;
+    let bestPath = null;
     let bestScore = -Infinity;
 
     for (const path of paths) {
@@ -332,20 +271,20 @@ export function optimizeOverTime(locations, hiveCount, currentHiveLocations = []
 
       // Score: Σ monthly scores − Σ movement costs between consecutive positions
       let totalScore = 0;
-      let prev       = curPos; // null when this hive has no current position
+      let prev = curPos; // null when this hive has no current position
 
       for (const step of path) {
         totalScore += step.score;
         if (prev !== null) {
           const distKm = haversineKm(prev.lat, prev.lng, step.lat, step.lng);
-          totalScore  -= distKm * MOVEMENT_PENALTY_PER_KM;
+          totalScore -= distKm * MOVEMENT_PENALTY_PER_KM;
         }
         prev = step;
       }
 
       if (totalScore > bestScore) {
         bestScore = totalScore;
-        bestPath  = path;
+        bestPath = path;
       }
     }
 
@@ -358,8 +297,8 @@ export function optimizeOverTime(locations, hiveCount, currentHiveLocations = []
       hiveIndex,
       plan: bestPath.map((step, t) => ({
         month: t + 1,
-        lat:   step.lat,
-        lng:   step.lng,
+        lat: step.lat,
+        lng: step.lng,
         score: parseFloat(step.score.toFixed(2)),
       })),
       total_score: parseFloat(bestScore.toFixed(2)),

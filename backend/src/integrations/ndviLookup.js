@@ -76,8 +76,8 @@ function loadFromPath(dataPath) {
 loadDataset();
 
 export function getNDVI(lat, lng, month) {
-    const rLat = parseFloat(Number(lat).toFixed(2));
-    const rLng = parseFloat(Number(lng).toFixed(2));
+    const qLat = Number(lat);
+    const qLng = Number(lng);
     const m = parseInt(month, 10);
 
     let bestDist = Infinity;
@@ -85,14 +85,14 @@ export function getNDVI(lat, lng, month) {
 
     for (const r of records) {
         if (r.month === m) {
-            if (r.lat === rLat && r.lon === rLng) {
-                return r.ndvi;
-            }
-
-            const d = Math.sqrt(Math.pow(r.lat - rLat, 2) + Math.pow(r.lon - rLng, 2));
-            if (d < bestDist && d <= 0.2) {
-                bestDist = d;
-                closestNdvi = r.ndvi;
+            const dLat = Math.abs(r.lat - qLat);
+            const dLng = Math.abs(r.lon - qLng);
+            if (dLat < 0.1 && dLng < 0.1) {
+                const d = Math.sqrt(dLat * dLat + dLng * dLng);
+                if (d < bestDist) {
+                    bestDist = d;
+                    closestNdvi = r.ndvi;
+                }
             }
         }
     }

@@ -11,15 +11,14 @@ export async function fetchFlora(lat, lng) {
   try {
     const response = await axios.get('https://api.gbif.org/v1/occurrence/search', {
       params: {
-        decimalLatitude: lat,
-        decimalLongitude: lng,
-        radius: 8000,
+        decimalLatitude: `${(lat - 0.07).toFixed(4)},${(lat + 0.07).toFixed(4)}`,
+        decimalLongitude: `${(lng - 0.07).toFixed(4)},${(lng + 0.07).toFixed(4)}`,
         taxonKey: 6,
         limit: 0,
         hasCoordinate: true,
         basisOfRecord: 'HUMAN_OBSERVATION'
       },
-      timeout: 3000 // Timeout protection
+      timeout: 5000 // Timeout protection
     });
 
     if (!response.data || typeof response.data.count !== 'number') {

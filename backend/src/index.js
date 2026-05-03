@@ -11,6 +11,7 @@ import { logger } from './utils/logger.js';
 import tileRoutes from './routes/tileRoutes.js';
 import scoreRouter from './routes/score.js';
 import feedbackRouter from './routes/feedback.js';
+import feedbackUXRouter from './routes/feedbackUX.js';
 import ndviRouter from './routes/ndvi.js';
 import hivesRouter from './routes/hives.js';
 import farmersRouter from './routes/farmers.js';
@@ -28,6 +29,7 @@ import allocateRouter from './routes/allocate.js';
 import simulateRouter from './routes/simulate.js';
 import traceRouter from './routes/trace.js';
 import savedLocationsRouter from './routes/savedLocations.js';
+import suggestionsRouter from './routes/suggestions.js';
 import { auth, admin } from './middleware/auth.js';
 
 import { connectDB } from './config/db.js';
@@ -37,19 +39,26 @@ import { runTileGeneration } from './scripts/generateTiles.js';
 dotenv.config();
 
 connectDB().then(() => {
-  // Run once on startup
-  runTileGeneration();
-
-  // Run every 30 minutes
-  setInterval(() => {
+  if (process.env.RUN_TILE_GEN === "true") {
+    // Run once on startup
     runTileGeneration();
-  }, 30 * 60 * 1000);
+
+    // Run every 30 minutes
+    setInterval(() => {
+      runTileGeneration();
+    }, 30 * 60 * 1000);
+  } else {
+    logger.info("Tile generation disabled on startup. Set RUN_TILE_GEN=true to enable.");
+  }
 });
 
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(rateLimiter);
 app.use(express.json());
 app.use(requestLogger);
@@ -67,10 +76,12 @@ app.use('/api/auth', authLimiter, authRouter);
 app.use('/api', tileRoutes);
 app.use('/api/score', scoreRouter);
 app.use('/api/ndvi', ndviRouter);
+app.use('/api/suggestions', suggestionsRouter);
 
 app.use('/api/allocate-hives', allocateRouter);
 app.use('/api/simulate', simulateRouter);
 app.use('/api/trace-score', traceRouter);
+app.use('/api', feedbackUXRouter);
 app.use('/api/feedback', feedbackRouter);
 app.use('/api/batches', harvestsRouter);
 

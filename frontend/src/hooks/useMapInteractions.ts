@@ -2,12 +2,23 @@ import { useState } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 
-// Hex-shaped marker icon for analyzed points
-export const hexIcon = new L.DivIcon({
-  html: `<div style="background-color: #5D0623; width: 22px; height: 26px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3);"></div>`,
+// Precise crosshair indicator for tapped locations — with ripple feedback
+export const crosshairIcon = new L.DivIcon({
+  html: `<div style="position:relative; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">
+    <!-- ripple ring -->
+    <div style="position:absolute; width:40px; height:40px; border-radius:50%; border: 2px solid rgba(220,38,38,0.6); animation: tap-ripple 1s ease-out forwards;"></div>
+    <!-- crosshair lines -->
+    <div style="position:absolute; width:2px; height:9px; background:#fff; top:2px; box-shadow:0 0 2px #000;"></div>
+    <div style="position:absolute; width:2px; height:9px; background:#fff; bottom:2px; box-shadow:0 0 2px #000;"></div>
+    <div style="position:absolute; width:9px; height:2px; background:#fff; left:2px; box-shadow:0 0 2px #000;"></div>
+    <div style="position:absolute; width:9px; height:2px; background:#fff; right:2px; box-shadow:0 0 2px #000;"></div>
+    <!-- center dot -->
+    <div style="width:7px; height:7px; background:#DC2626; border:1.5px solid #fff; border-radius:50%; box-shadow:0 0 4px #000; z-index:2;"></div>
+    <style>@keyframes tap-ripple{0%{transform:scale(0.3);opacity:1;}100%{transform:scale(2.2);opacity:0;}}</style>
+  </div>`,
   className: '',
-  iconSize: [22, 26],
-  iconAnchor: [11, 26],
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
 });
 
 // Pulsing blue dot for live user location

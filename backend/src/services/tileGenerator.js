@@ -71,8 +71,8 @@ async function generateTiles(points, zoomLevels, resolution, month) {
 
       bulkOps.push({
         updateOne: {
-          filter: { z: zoom, x, y, month, gridSize: resolution },
-          update: { grid, gridSize: resolution, createdAt: new Date() },
+          filter: { z: zoom, x, y, month },
+          update: { $set: { grid, gridSize: resolution, createdAt: new Date() } },
           upsert: true
         }
       });

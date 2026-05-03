@@ -129,8 +129,11 @@ export const TodayPage = ({ user }: any) => {
         ) : hives.length === 0 ? (
           <div style={{ padding: '20px 0', textAlign: 'center', color: '#666' }}>
             <Hexagon size={24} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-            <p>No activity yet.</p>
-            <Link to="/hives" style={{ display: 'inline-block', marginTop: '10px', fontSize: 13, color: '#8B0000', fontWeight: 600 }}>Add your first hive</Link>
+            <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>No hives added yet</p>
+            <p style={{ fontSize: 12, color: '#666', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{'To get started:\n\u2022 Add your first hive\n\u2022 Or explore the map to find suitable locations'}</p>
+            <p style={{ fontSize: 11, color: '#999', lineHeight: 1.5 }}>
+              <strong>Tip:</strong> Use the Field tab to check where conditions are best for your bees
+            </p>
           </div>
         ) : hives.slice(0,4).map((h, i) => {
           const healthy = h.healthStatus === 'healthy';

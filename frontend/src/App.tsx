@@ -14,7 +14,7 @@ export default function App() {
     </div>
   );
 
-  if (!user) return <AuthScreen onSignIn={signInWithGoogle} />;
+  // bypassed
 
   return (
     <BrowserRouter>

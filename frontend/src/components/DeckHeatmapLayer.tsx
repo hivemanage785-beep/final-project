@@ -35,21 +35,24 @@ interface DeckHeatmapLayerProps {
 // ─────────────────────────────────────────────────────────────
 function scalarToRGB(v: number): [number, number, number] {
   // v: 0.0 → 1.0
+  // Low   #B71C1C [183, 28, 28]
+  // Mid   #F57C00 [245,124,  0]
+  // High  #1B5E20 [ 27, 94, 32]
   if (v < 0.5) {
-    // Red [215,48,39] → Yellow [254,224,139]
+    // Low → Mid
     const t = v * 2;
     return [
-      Math.round(215 + (254 - 215) * t),
-      Math.round(48  + (224 -  48) * t),
-      Math.round(39  + (139 -  39) * t),
+      Math.round(183 + (245 - 183) * t),
+      Math.round(28  + (124 -  28) * t),
+      Math.round(28  + (0   -  28) * t),
     ];
   } else {
-    // Yellow [254,224,139] → Green [26,152,80]
+    // Mid → High
     const t = (v - 0.5) * 2;
     return [
-      Math.round(254 + (26  - 254) * t),
-      Math.round(224 + (152 - 224) * t),
-      Math.round(139 + (80  - 139) * t),
+      Math.round(245 + (27  - 245) * t),
+      Math.round(124 + (94  - 124) * t),
+      Math.round(0   + (32  -   0) * t),
     ];
   }
 }
@@ -99,7 +102,12 @@ const DeckHeatmapLayer: React.FC<DeckHeatmapLayerProps> = ({ selectedMonth, onEr
       if (tileTextureCache.has(cacheKey)) return tileTextureCache.get(cacheKey)!;
 
       try {
-        const json = await apiGet(`/api/tile/${z}/${x}/${y}?month=${selectedMonth}`);
+        const resp = await fetch(`/api/tile/${z}/${x}/${y}?month=${selectedMonth}`);
+        // 404 = tile not generated for this region/month — silently skip (no crash, no error banner)
+        if (resp.status === 404) return null;
+        if (!resp.ok) { if (onError) onError(); return null; }
+
+        const json = await resp.json();
         const grid = json?.data;
         if (!grid || grid.length === 0) return null;
 
@@ -133,7 +141,7 @@ const DeckHeatmapLayer: React.FC<DeckHeatmapLayerProps> = ({ selectedMonth, onEr
             px[i]     = r;
             px[i + 1] = g;
             px[i + 2] = b;
-            px[i + 3] = 178; // ~70% opacity (matches original shader's 0.7 alpha)
+            px[i + 3] = 217; // ~85% opacity
           }
         }
 
@@ -157,7 +165,7 @@ const DeckHeatmapLayer: React.FC<DeckHeatmapLayerProps> = ({ selectedMonth, onEr
       // Use standard BitmapLayer — no custom shader, no WebGL pipeline risk
       return new BitmapLayer(props, {
         id: `${props.id}-bitmap`,
-        data: null, // explicit null
+        data: undefined as unknown as never, // BitmapLayer ignores data; image prop drives render
         image: data,
         bounds: [west, south, east, north],
         textureParameters: {

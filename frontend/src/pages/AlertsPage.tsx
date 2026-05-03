@@ -75,8 +75,9 @@ export const AlertsPage = () => {
             </div>
           ))
         ) : alerts.length === 0 ? (
-          <div className="empty-state" style={{ padding: '2rem 1rem' }}>
-             <p style={{ color: '#666' }}>No new alerts</p>
+          <div className="empty-state" style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+            <p style={{ fontWeight: 700, fontSize: 14, color: '#333', marginBottom: 8 }}>No alerts yet</p>
+            <p style={{ fontSize: 12, color: '#666', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{'You will receive alerts when:\n\u2022 Conditions become unsuitable\n\u2022 Rainfall increases significantly\n\u2022 Hive health needs attention'}</p>
           </div>
         ) : (
           alerts.map(a => {

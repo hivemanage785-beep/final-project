@@ -59,6 +59,7 @@ body {
 }
 
 #root {
+  width: 100%;
   height: 100vh;
   height: 100dvh;
   display: flex;
@@ -67,39 +68,34 @@ body {
 }
 
 /* ─────────────────────────────────────────────
-   APP SHELL  (mobile-first, centered on desktop)
+   APP SHELL  (mobile-first — identical dimensions on every tab)
 ───────────────────────────────────────────── */
+
+/* Desktop surround — same beige as app so no visible gutters on any tab */
+html, body {
+  background: var(--c-bg);
+}
+
 .app-shell {
   display: flex;
   flex-direction: column;
-  /* Fixed full-screen — identical on every tab */
+  /* Mobile frame: 430px = iPhone 14/15 Pro standard */
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
   height: 100vh;
   height: 100dvh;
-  max-width: 480px;
-  margin: 0 auto;
   background: var(--c-bg);
   position: relative;
   overflow: hidden;
 }
 
-/* Desktop chrome */
-body::before {
-  content: '';
-  display: block;
-  position: fixed;
-  inset: 0;
-  background: #1a1a1a;
-  z-index: -1;
-}
-
 .main-content {
   flex: 1;
-  /* Scroll happens HERE — not at the page level */
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  padding: 16px 16px 24px;
-  /* Needed so children's min-height:100% resolves correctly */
+  /* No padding here — each page type manages its own */
   display: flex;
   flex-direction: column;
 }
@@ -108,8 +104,10 @@ body::before {
    Short-content pages (empty states) won't leave a gap.
    The animation is also defined here as a single rule. */
 .page-enter {
-  flex: 1;            /* fill all space from the flex column above */
-  min-height: 100%;   /* fallback for browsers without dvh */
+  flex: 1;
+  min-height: 100%;
+  /* Standard page padding — same for Today, Hives, Alerts, More */
+  padding: 16px 16px 24px;
   animation: page-fade 0.18s ease-out;
 }
 
@@ -414,16 +412,7 @@ body::before {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─────────────────────────────────────────────
-   PAGE ANIMATION
-───────────────────────────────────────────── */
-.page-enter {
-  animation: page-in 0.18s ease-out;
-}
-@keyframes page-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* (page-enter animation defined in APP SHELL section above) */
 
 /* ─────────────────────────────────────────────
    PAGE HEADER
@@ -589,7 +578,6 @@ body::before {
   background: #fff;
   border-radius: 24px 24px 0 0;
   width: 100%;
-  max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
   transform: translateY(100%);
@@ -737,13 +725,13 @@ body::before {
 /* ─────────────────────────────────────────────
    FIELD PAGE
 ───────────────────────────────────────────── */
-/* Field page breaks out of the padding container and fills the shell exactly */
+/* Field page fills the shell with no padding (map needs full bleed) */
 .field-page {
   display: flex;
   flex-direction: column;
-  /* Step out of the 16px padding and fill exactly the space above the nav */
-  margin: -16px -16px -24px;
-  height: calc(100% + 40px); /* 16px top + 24px bottom padding compensated */
+  /* padding: 0 — field page opts out; map fills edge-to-edge */
+  flex: 1;
+  height: 100%;
   overflow: hidden;
 }
 .field-topbar {

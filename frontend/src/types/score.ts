@@ -10,7 +10,7 @@ export interface ScoreResult {
   movementAdvice: string;
   reasoning: string[];
   mlWeightsUsed: { weather: number; flora: number; season: number };
-  rawWeather: { avgTemp: number; avgRain: number; avgWind: number };
+  rawWeather: { avgTemp: number; avgRain: number; avgWind: number; avgHumidity?: number };
   floraCount: number;
   // Monthly 12-score array (index 0 = currentMonth, wraps around)
   monthlyScores?: number[];
@@ -19,6 +19,10 @@ export interface ScoreResult {
   mlWarning?: 'LOW_CONFIDENCE_PREDICTION' | null;
   mlModel?: string;
   ndvi_available?: boolean;
+  // Insight layer fields
+  suitability_label?: string;
+  recommendation_text?: string;
+  reason_text?: string;
 }
 
 export interface HeatmapPoint {

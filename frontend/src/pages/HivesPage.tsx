@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Hexagon, MapPin, CheckCircle2, AlertTriangle, AlertCircle, ChevronRight, Clock } from 'lucide-react';
+import { Plus, Hexagon, MapPin, CheckCircle2, AlertTriangle, AlertCircle, ClipboardList } from 'lucide-react';
 import { apiGet } from '../services/api';
+import { AddHiveSheet } from '../components/AddHiveSheet';
+import { AddLogSheet } from '../components/AddLogSheet';
+import QRCodeCard from '../components/QRCodeCard';
 
 const STATUS_MAP: Record<string, { label: string; bg: string; color: string; Icon: any }> = {
   healthy:  { label: 'Healthy',  bg: '#DCFCE7', color: '#15803D', Icon: CheckCircle2 },
@@ -8,7 +11,7 @@ const STATUS_MAP: Record<string, { label: string; bg: string; color: string; Ico
   critical: { label: 'Critical', bg: '#FEE2E2', color: '#B91C1C', Icon: AlertCircle },
 };
 
-const HiveCard = ({ hive }: { hive: any }) => {
+const HiveCard = ({ hive, onAddLog, setSelectedBatchId }: { hive: any; onAddLog: (hive: any) => void; setSelectedBatchId: (id: string) => void }) => {
   const s = STATUS_MAP[hive.healthStatus] ?? STATUS_MAP.warning;
   const SI = s.Icon;
 
@@ -51,6 +54,30 @@ const HiveCard = ({ hive }: { hive: any }) => {
           </div>
         ))}
       </div>
+
+      <div style={{ paddingTop:10, borderTop:'1px solid #F0EDE8', display: 'flex', gap: 8 }}>
+        <button
+          onClick={() => onAddLog(hive)}
+          style={{
+            flex: 1, display:'flex', alignItems:'center', justifyContent:'center',
+            gap:6, padding:'9px', borderRadius:10, border:'1px solid #E2E8F0',
+            background:'#F8FAFC', fontSize:13, fontWeight:700, color:'#334155', cursor:'pointer'
+          }}
+        >
+          <ClipboardList size={15} />
+          Add Log
+        </button>
+        <button 
+          onClick={() => setSelectedBatchId(hive._id)}
+          style={{
+            flex: 1, display:'flex', alignItems:'center', justifyContent:'center',
+            gap:6, padding:'9px', borderRadius:10, border:'1px solid #E2E8F0',
+            background:'#fff', fontSize:13, fontWeight:700, color:'#334155', cursor:'pointer'
+          }}
+        >
+          Generate QR
+        </button>
+      </div>
     </div>
   );
 };
@@ -60,12 +87,20 @@ export const HivesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [logTarget, setLogTarget] = useState<any | null>(null);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchHives = () => {
+    setLoading(true);
     apiGet('/api/hives')
       .then(d => setHives(Array.isArray(d) ? d : []))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchHives();
   }, []);
 
   const filtered = filter === 'all' ? hives : hives.filter(h => h.healthStatus === filter);
@@ -108,12 +143,11 @@ export const HivesPage = () => {
           <p className="page-title">My Hives</p>
           <p className="page-subtitle">{hives.length} active {hives.length === 1 ? 'apiary' : 'apiaries'}</p>
         </div>
-        <button className="btn btn-primary" style={{ padding:'10px 14px',borderRadius:12 }}>
+        <button onClick={() => setIsAddOpen(true)} className="btn btn-primary" style={{ padding:'10px 14px',borderRadius:12 }}>
           <Plus size={18} />
         </button>
       </div>
 
-      {/* Filter pills */}
       {hives.length > 0 && (
         <div style={{ display:'flex',gap:8,overflowX:'auto',paddingBottom:4,marginBottom:16 }}>
           {(['all','healthy','warning','critical'] as const).map(f => (
@@ -134,13 +168,15 @@ export const HivesPage = () => {
           ))}
         </div>
       )}
+      {hives.length > 0 && (
+        <p style={{ fontSize: 13, color: '#555', marginBottom: 16 }}>
+          Logs help track hive performance and support better decision-making over time.
+        </p>
+      )}
 
       {hives.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon"><Hexagon size={26} /></div>
-          <p className="empty-title">No hives connected</p>
-          <p className="empty-body">Add your first hive to start monitoring health and flowering predictions.</p>
-          <button className="btn btn-primary"><Plus size={16} /> Add Hive</button>
+          No hives added yet. Add your first hive to begin.
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign:'center', padding:'40px 0', color:'#aaa', fontSize:13 }}>
@@ -149,9 +185,29 @@ export const HivesPage = () => {
       ) : (
         filtered.map((h, idx) => (
           <React.Fragment key={h._id || h.id || idx}>
-            <HiveCard hive={h} />
+            <HiveCard hive={h} onAddLog={setLogTarget} setSelectedBatchId={setSelectedBatchId} />
           </React.Fragment>
         ))
+      )}
+
+      {selectedBatchId && (
+        <QRCodeCard batchId={selectedBatchId} />
+      )}
+
+      <AddHiveSheet
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onAdded={() => fetchHives()}
+      />
+
+      {logTarget && (
+        <AddLogSheet
+          isOpen={!!logTarget}
+          hiveId={logTarget._id || logTarget.id}
+          hiveName={logTarget.name}
+          onClose={() => setLogTarget(null)}
+          onAdded={() => fetchHives()}
+        />
       )}
     </div>
   );

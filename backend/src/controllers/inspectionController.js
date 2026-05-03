@@ -24,13 +24,15 @@ export async function getInspections(req, res, next) {
 
 export async function createInspection(req, res, next) {
   try {
+    console.log("INSPECTION BODY:", req.body);
     const payload = req.body;
     
     const newDoc = await Inspection.create({ ...payload, uid: req.user.id });
     
     res.status(201).json({ success: true, data: formatDoc(newDoc) });
   } catch (error) {
-    next(error);
+    console.error("INSPECTION ERROR:", error);
+    return res.status(500).json({ error: error.message });
   }
 }
 

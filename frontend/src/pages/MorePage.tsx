@@ -1,6 +1,8 @@
-import React from 'react';
-import { User, LogOut, HelpCircle, ChevronRight, Shield, Bell, Info, Hexagon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { User, LogOut, HelpCircle, ChevronRight, Shield, Bell, Info, Hexagon, BarChart3 } from 'lucide-react';
 import { auth } from '../firebase';
+import { apiGet } from '../services/api';
 
 interface RowProps {
   Icon: any; label: string; sub?: string; danger?: boolean; onClick?: () => void;
@@ -18,10 +20,43 @@ const Row = ({ Icon, label, sub, danger, onClick }: RowProps) => (
   </div>
 );
 
+const outcomeBadge = (outcome: string) => {
+  const cfg: Record<string, { bg: string; color: string }> = {
+    Good:    { bg: '#DCFCE7', color: '#15803D' },
+    Average: { bg: '#FEF3C7', color: '#B45309' },
+    Poor:    { bg: '#FEE2E2', color: '#B91C1C' },
+  };
+  const c = cfg[outcome] || cfg.Average;
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, padding: '2px 8px',
+      borderRadius: 6, background: c.bg, color: c.color,
+      textTransform: 'uppercase', letterSpacing: '0.04em'
+    }}>{outcome}</span>
+  );
+};
+
 export const MorePage = ({ user }: any) => {
+  const navigate = useNavigate();
   const name = user?.displayName || 'Beekeeper';
   const email = user?.email || '';
   const inits = name.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase();
+
+  const [feedbackData, setFeedbackData] = useState<{ total: number; entries: any[] } | null>(null);
+  const [fbLoading, setFbLoading] = useState(true);
+
+  useEffect(() => {
+    apiGet('/api/feedback-history')
+      .then((d: any) => {
+        if (d.success) setFeedbackData({ total: d.total, entries: d.entries || [] });
+      })
+      .catch(() => {})
+      .finally(() => setFbLoading(false));
+  }, []);
+
+  const goodCount = feedbackData?.entries.filter((e: any) => e.actual_outcome === 'Good').length || 0;
+  const avgCount = feedbackData?.entries.filter((e: any) => e.actual_outcome === 'Average').length || 0;
+  const poorCount = feedbackData?.entries.filter((e: any) => e.actual_outcome === 'Poor').length || 0;
 
   return (
     <div className="page-enter">
@@ -58,19 +93,30 @@ export const MorePage = ({ user }: any) => {
         </div>
       </div>
 
+      {/* Feedback History */}
+      <p className="section-label">Feedback Data</p>
+      <div className="card" style={{ marginBottom:14 }}>
+        <Row
+          Icon={BarChart3}
+          label="Feedback History"
+          sub={fbLoading ? 'Loading...' : `${feedbackData?.total || 0} entries recorded`}
+          onClick={() => navigate('/feedback-history')}
+        />
+      </div>
+
       {/* Account */}
       <p className="section-label">Account</p>
       <div className="card" style={{ marginBottom:14 }}>
-        <Row Icon={User}   label="Profile"       sub="Edit personal details" />
-        <Row Icon={Bell}   label="Notifications" sub="Alert preferences" />
-        <Row Icon={Shield} label="Security"      sub="Password & 2FA" />
+        <Row Icon={User}   label="Profile"       sub="Edit personal details" onClick={() => navigate('/profile')} />
+        <Row Icon={Bell}   label="Notifications" sub="Alert preferences" onClick={() => navigate('/notifications')} />
+        <Row Icon={Shield} label="Security"      sub="Password & 2FA" onClick={() => navigate('/security')} />
       </div>
 
       {/* Support */}
       <p className="section-label">Support</p>
       <div className="card" style={{ marginBottom:14 }}>
-        <Row Icon={HelpCircle} label="Help & FAQs"   sub="Common questions" />
-        <Row Icon={Info}       label="About HiveOps" sub="Version 1.0 · Tamil Nadu" />
+        <Row Icon={HelpCircle} label="Help & FAQs"   sub="Common questions" onClick={() => navigate('/help')} />
+        <Row Icon={Info}       label="About HiveOps" sub="Version 1.0 · Tamil Nadu" onClick={() => navigate('/about')} />
       </div>
 
       {/* Sign out */}

@@ -16,7 +16,8 @@ export async function getMLWeights() {
 
 export async function predictMLScore(payload) {
   try {
-    let mlUrl = process.env.ML_SERVICE_URL || 'http://127.0.0.1:8000';
+    let mlUrl = process.env.ML_SERVICE_URL;
+    if (!mlUrl) throw new Error("ML_SERVICE_URL is not configured");
     mlUrl = mlUrl.replace(/\/$/, "");
 
     // Cache key based on lat/lng/month to avoid repeated calls
@@ -66,7 +67,8 @@ export async function predictMLScore(payload) {
 
 export async function sendMLFeedback(payload) {
   try {
-    let mlUrl = process.env.ML_SERVICE_URL || 'http://127.0.0.1:8000';
+    let mlUrl = process.env.ML_SERVICE_URL;
+    if (!mlUrl) throw new Error("ML_SERVICE_URL is not configured");
     mlUrl = mlUrl.replace(/\/$/, "");
     // Offline architecture
     // await axios.post(`${mlUrl}/feedback`, payload, { timeout: 5000 });

@@ -84,7 +84,10 @@ async function fetchMLPoints(month) {
   const results = [];
   for (let i = 0; i < payload.length; i += BATCH) {
     const chunk = payload.slice(i, i + BATCH);
-    const res = await axios.post('http://127.0.0.1:8000/predict-bulk', { points: chunk });
+    let mlUrl = process.env.ML_SERVICE_URL;
+    if (!mlUrl) throw new Error("ML_SERVICE_URL is not configured");
+    mlUrl = mlUrl.replace(/\/$/, "");
+    const res = await axios.post(`${mlUrl}/predict-bulk`, { points: chunk });
     results.push(...res.data.results);
   }
 
@@ -100,33 +103,36 @@ async function fetchMLPoints(month) {
 // MAIN
 // ─────────────────────────────────────────────────────────────
 async function runTileGeneration() {
-  console.log('Running offline ML tile generation (full Tamil Nadu)...');
+  console.log('Running offline ML tile generation (full Tamil Nadu, all 12 months)...');
 
   try {
     await connectDB();
 
-    const selectedMonth = new Date().getMonth() + 1;
-    console.log(`Month: ${selectedMonth}`);
-
-    const mlResults = await fetchMLPoints(selectedMonth);
-    const points    = mlResults.map(p => [p.lat, p.lng, p.score]);
-
-    // Score audit
-    const scores   = points.map(p => p[2]);
-    const minScore = Math.min(...scores);
-    const maxScore = Math.max(...scores);
-    console.log(`ML SCORE MIN: ${minScore}  MAX: ${maxScore}  RANGE: ${maxScore - minScore}`);
-
-    if (minScore === 0 && maxScore === 0) {
-      console.error('ERROR: ML returning all zeros — aborting tile write');
-      return;
-    }
-
-    // Generate tiles for zoom levels 6, 8, 10
     const GRID_SIZE = parseInt(process.env.GRID_SIZE, 10) || 32;
     console.log(`Using GRID_SIZE = ${GRID_SIZE}`);
-    await generateTiles(points, [6, 8, 10], GRID_SIZE, selectedMonth);
-    console.log('Tile generation complete.');
+
+    for (let month = 1; month <= 12; month++) {
+      console.log(`\n--- Month ${month}/12 ---`);
+
+      const mlResults = await fetchMLPoints(month);
+      const points    = mlResults.map(p => [p.lat, p.lng, p.score]);
+
+      // Score audit
+      const scores   = points.map(p => p[2]);
+      const minScore = Math.min(...scores);
+      const maxScore = Math.max(...scores);
+      console.log(`  ML SCORE MIN: ${minScore}  MAX: ${maxScore}  RANGE: ${maxScore - minScore}`);
+
+      if (minScore === 0 && maxScore === 0) {
+        console.error(`  ERROR: ML returning all zeros for month ${month} — skipping`);
+        continue;
+      }
+
+      await generateTiles(points, [6, 8, 10], GRID_SIZE, month);
+      console.log(`  Month ${month} tiles written.`);
+    }
+
+    console.log('\nAll 12 months tile generation complete.');
 
   } catch (error) {
     console.error('Error during tile generation:', error.message);
