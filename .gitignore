@@ -42,3 +42,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# ML Tracking & Feedback
+**/predictions.jsonl
+**/feedback_data.csv
+**/models/*.pkl
+!**/models/*.json
+**/output.txt
+**/regression_report.txt
+**/validation_report.txt

@@ -1,9 +1,0 @@
-{
-  "name": "BUZZ-OFF",
-  "description": "A heritage apiary management system with real-time hive monitoring, voice-assisted inspections, and immutable traceability.",
-  "requestFramePermissions": [
-  
-    "microphone",
-    "geolocation"
-  ]
-}
