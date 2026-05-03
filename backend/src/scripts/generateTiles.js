@@ -70,7 +70,8 @@ async function fetchMLPoints(month) {
     return {
       lat:      pt.lat,
       lng:      pt.lng,
-      temp,
+      temperature: temp,
+      temp:     temp,
       humidity,
       rainfall,
       month
@@ -84,10 +85,10 @@ async function fetchMLPoints(month) {
   const results = [];
   for (let i = 0; i < payload.length; i += BATCH) {
     const chunk = payload.slice(i, i + BATCH);
-    let mlUrl = process.env.ML_SERVICE_URL;
-    if (!mlUrl) throw new Error("ML_SERVICE_URL is not configured");
-    mlUrl = mlUrl.replace(/\/$/, "");
-    const res = await axios.post(`${mlUrl}/predict-bulk`, { points: chunk });
+    if (!process.env.ML_SERVICE_URL) {
+      throw new Error("ML_SERVICE_URL is not configured");
+    }
+    const res = await axios.post(`${process.env.ML_SERVICE_URL}/predict-bulk`, { points: chunk });
     results.push(...res.data.results);
   }
 

@@ -65,18 +65,13 @@ export async function scoreController(req, res, next) {
 
     // Call ML service
     let mlResponse;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 7000);
 
     try {
-      const response = await axios.post(process.env.ML_SERVICE_URL, mlPayload, {
-        signal: controller.signal
+      const response = await axios.post(`${process.env.ML_SERVICE_URL}/predict`, mlPayload, {
+        timeout: 20000
       });
       mlResponse = response.data;
-      clearTimeout(timeout);
     } catch (err) {
-      clearTimeout(timeout);
-
       return res.status(503).json({
         error: "ML service timeout or unavailable"
       });

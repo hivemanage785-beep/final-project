@@ -16,9 +16,9 @@ export async function getMLWeights() {
 
 export async function predictMLScore(payload) {
   try {
-    let mlUrl = process.env.ML_SERVICE_URL;
-    if (!mlUrl) throw new Error("ML_SERVICE_URL is not configured");
-    mlUrl = mlUrl.replace(/\/$/, "");
+    if (!process.env.ML_SERVICE_URL) {
+      throw new Error("ML_SERVICE_URL is not configured");
+    }
 
     // Cache key based on lat/lng/month to avoid repeated calls
     const cacheKey = `ml:predict:hybrid:${payload.lat}:${payload.lng}:${payload.month}`;
@@ -28,7 +28,7 @@ export async function predictMLScore(payload) {
       return cached;
     }
 
-    logger.info(`[ML] POST ${mlUrl}/predict`, { lat: payload.lat, lng: payload.lng, month: payload.month });
+    logger.info(`[ML] POST ${process.env.ML_SERVICE_URL}/predict`, { lat: payload.lat, lng: payload.lng, month: payload.month });
 
     // ── Compute ndvi_trend from local dataset lookup ───────────────────────
     const resolvedLat = payload.lat !== undefined ? payload.lat : payload.latitude;
@@ -42,6 +42,7 @@ export async function predictMLScore(payload) {
     const mlPayload = {
       latitude: resolvedLat,
       longitude: resolvedLng,
+      temperature: payload.temp,
       temp: payload.temp,
       humidity: payload.humidity,
       rainfall: payload.rainfall,
@@ -49,10 +50,10 @@ export async function predictMLScore(payload) {
       ndvi_trend
     };
 
-    console.log("[ML PAYLOAD]", mlPayload);
-
-    // Offline architecture: ML is only used during tile generation
-    const result = null;
+    const response = await axios.post(`${process.env.ML_SERVICE_URL}/predict`, mlPayload, {
+      timeout: 20000
+    });
+    const result = response.data;
     
     if (result && result.score !== null && result.score !== undefined) {
       cache.set(cacheKey, result, 600); // Cache for 10 minutes
@@ -67,11 +68,10 @@ export async function predictMLScore(payload) {
 
 export async function sendMLFeedback(payload) {
   try {
-    let mlUrl = process.env.ML_SERVICE_URL;
-    if (!mlUrl) throw new Error("ML_SERVICE_URL is not configured");
-    mlUrl = mlUrl.replace(/\/$/, "");
-    // Offline architecture
-    // await axios.post(`${mlUrl}/feedback`, payload, { timeout: 5000 });
+    if (!process.env.ML_SERVICE_URL) {
+      throw new Error("ML_SERVICE_URL is not configured");
+    }
+    await axios.post(`${process.env.ML_SERVICE_URL}/feedback`, payload, { timeout: 5000 });
     return true;
   } catch (error) {
     logger.error('[ML] Feedback endpoint unavailable', { message: error.message });
