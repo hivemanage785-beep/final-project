@@ -6,7 +6,11 @@ import pandas as pd
 import numpy as np
 import logging
 
-app = FastAPI(title="Flowering Prediction API")
+app = FastAPI()
+
+@app.get("/")
+def health():
+    return {"status": "ok"}
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -14,15 +18,14 @@ logger = logging.getLogger(__name__)
 
 # Load trained Random Forest model
 try:
-    model = joblib.load("flowering_model.pkl")
+    model = joblib.load("./flowering_model.pkl")
     logger.info("Model loaded successfully.")
 except Exception as e:
-    logger.error(f"Failed to load model: {e}")
-    model = None
+    raise RuntimeError(f"Model load failed: {e}")
 
 # Load feature scaler
 try:
-    scaler = joblib.load("flowering_scaler.pkl")
+    scaler = joblib.load("./flowering_scaler.pkl")
     logger.info("Scaler loaded successfully.")
 except Exception as e:
     logger.warning(f"Scaler not found, inference will use raw features: {e}")
