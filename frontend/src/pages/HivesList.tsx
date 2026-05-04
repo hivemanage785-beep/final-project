@@ -21,9 +21,11 @@ export const HivesList: React.FC = () => {
     // Attempting to grasp geolocation for easy UX
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const hiveLocalId = crypto.randomUUID(); // Required: Dexie uses 'id' as non-auto PK
+      if (!user) return;
+      const uid = user.uid;
       const newHive: Hive = {
         id: hiveLocalId,
-        uid: user.uid,
+        uid: uid,
         hive_id: newHiveId,
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,

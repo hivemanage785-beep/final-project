@@ -47,6 +47,7 @@ const MapPanner: React.FC<{ target?: { lat: number; lng: number } | null }> = ({
 export interface MapInnerProps { selectedMonth: number; user: any; }
 
 export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
+  console.log('[MapInner] Initializing. Month:', selectedMonth, 'User:', user?.uid);
   const [isSavedOpen,  setIsSavedOpen]  = useState(false);
   const [liveLocation, setLiveLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [panTarget,    setPanTarget]    = useState<{ lat: number; lng: number } | null>(null);
@@ -80,8 +81,16 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
   };
 
   const handleMapClick = async (lat: number, lng: number) => {
-    setSelectedLocation({ lat, lng });
-    await fetchLocationScore(lat, lng, selectedMonth, user?.uid);
+    try {
+      if (!user) return;
+      const uid = user.uid;
+      console.log('[MapInner] Map clicked at:', lat, lng);
+      setSelectedLocation({ lat, lng });
+      await fetchLocationScore(lat, lng, selectedMonth, uid);
+    } catch (err) {
+      console.error('[MapInner] Map click handler failed:', err);
+      setMapError(true);
+    }
   };
 
   const handleUseLocation = () => {
@@ -204,8 +213,9 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
       <MapContainer
         center={[11.1271, 78.6569]}
         zoom={7}
-        style={{ height: '100%', width: '100%', zIndex: 1 }}
+        style={{ height: '100%', width: '100%', zIndex: 1, minHeight: '400px' }}
         zoomControl={false}
+        whenReady={() => console.log('[MapInner] MapContainer successfully mounted')}
       >
         {/* CARTO light — clean, fast, no API key */}
         <TileLayer

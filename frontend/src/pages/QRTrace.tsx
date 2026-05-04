@@ -47,9 +47,10 @@ export const QRTrace: React.FC = () => {
     const selectedHive = hives.find(h => h.hive_id === newHarvest.hive_id);
     const batchId = `BATCH-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     
+    const uid = user.uid;
     const harvestData: Harvest = {
       id: crypto.randomUUID(), // Required: Dexie uses 'id' as non-auto PK
-      uid: user.uid,
+      uid: uid,
       hive_id: newHarvest.hive_id,
       batch_id: batchId,
       harvest_date: new Date().toISOString(),

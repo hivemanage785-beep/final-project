@@ -98,11 +98,12 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
     if (!hive.id || !user) return;
     setIsUploading(true);
     const date = new Date().toISOString();
+    const uid = user.uid;
     
     let audio_url = undefined;
     if (audioBlob) {
       try {
-        const fileRef = ref(storage, `inspections/${user.uid}/${hive.id}_${Date.now()}.webm`);
+        const fileRef = ref(storage, `inspections/${uid}/${hive.id}_${Date.now()}.webm`);
         await uploadBytes(fileRef, audioBlob);
         audio_url = await getDownloadURL(fileRef);
       } catch (e) {
@@ -112,7 +113,7 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
     
     const doc: Inspection = {
       id: crypto.randomUUID(), // Required: Dexie uses 'id' as non-auto PK
-      uid: user.uid,
+      uid: uid,
       hive_id: hive.id,
       date,
       notes: newInspection.notes || '',
