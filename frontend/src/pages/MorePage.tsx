@@ -1,46 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, HelpCircle, ChevronRight, Shield, Bell, Info, Hexagon, BarChart3 } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { 
+  User, LogOut, HelpCircle, ChevronRight, Shield, Bell, 
+  Info, Hexagon, BarChart3, Cloud, CloudOff, RefreshCw, Database
+} from 'lucide-react';
 import { auth } from '../firebase';
 import { apiGet } from '../services/api';
+import { db } from '../lib/db';
+import { useSync } from '../hooks/useSync';
 
 interface RowProps {
   Icon: any; label: string; sub?: string; danger?: boolean; onClick?: () => void;
 }
 const Row = ({ Icon, label, sub, danger, onClick }: RowProps) => (
-  <div className="settings-row" onClick={onClick}>
-    <div className="settings-row-icon" style={{ background: danger ? '#FEE2E2' : '#F5F3EF' }}>
-      <Icon size={17} color={danger ? '#B91C1C' : '#555'} />
+  <div 
+    className={`flex items-center gap-4 p-4 active:bg-slate-50 transition-colors cursor-pointer ${onClick ? '' : 'opacity-50 cursor-not-allowed'}`}
+    onClick={onClick}
+  >
+    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${danger ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-500'}`}>
+      <Icon size={18} strokeWidth={2.5} />
     </div>
-    <div style={{ flex:1 }}>
-      <p className="settings-row-label" style={{ color: danger ? '#B91C1C' : undefined }}>{label}</p>
-      {sub && <p className="settings-row-sub">{sub}</p>}
+    <div className="flex-1 min-w-0 text-left">
+      <p className={`text-sm font-bold truncate ${danger ? 'text-rose-600' : 'text-slate-800'}`}>{label}</p>
+      {sub && <p className="text-[11px] font-medium text-slate-400 truncate">{sub}</p>}
     </div>
-    {!danger && <ChevronRight size={15} color="#ccc" />}
+    {!danger && onClick && <ChevronRight size={16} className="text-slate-300" />}
   </div>
 );
 
-const outcomeBadge = (outcome: string) => {
-  const cfg: Record<string, { bg: string; color: string }> = {
-    Good:    { bg: '#DCFCE7', color: '#15803D' },
-    Average: { bg: '#FEF3C7', color: '#B45309' },
-    Poor:    { bg: '#FEE2E2', color: '#B91C1C' },
-  };
-  const c = cfg[outcome] || cfg.Average;
-  return (
-    <span style={{
-      fontSize: 10, fontWeight: 700, padding: '2px 8px',
-      borderRadius: 6, background: c.bg, color: c.color,
-      textTransform: 'uppercase', letterSpacing: '0.04em'
-    }}>{outcome}</span>
-  );
-};
-
 export const MorePage = ({ user }: any) => {
   const navigate = useNavigate();
+  const { isOnline, isSyncing } = useSync();
+  const outboxCount = useLiveQuery(() => db.outbox.count()) || 0;
+  
   const name = user?.displayName || 'Beekeeper';
   const email = user?.email || '';
-  const inits = name.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase();
+  const inits = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
   const [feedbackData, setFeedbackData] = useState<{ total: number; entries: any[] } | null>(null);
   const [fbLoading, setFbLoading] = useState(true);
@@ -54,84 +50,109 @@ export const MorePage = ({ user }: any) => {
       .finally(() => setFbLoading(false));
   }, []);
 
-  const goodCount = feedbackData?.entries.filter((e: any) => e.actual_outcome === 'Good').length || 0;
-  const avgCount = feedbackData?.entries.filter((e: any) => e.actual_outcome === 'Average').length || 0;
-  const poorCount = feedbackData?.entries.filter((e: any) => e.actual_outcome === 'Poor').length || 0;
+  const lastSync = useMemo(() => {
+    const ts = localStorage.getItem('last_sync_timestamp');
+    if (!ts) return 'Never';
+    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }, [isSyncing]);
 
   return (
-    <div className="page-enter">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">More</h1>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Account &amp; settings</p>
-        </div>
+    <div className="page-enter bg-[#f8f9fa] min-h-[100dvh] pb-24 px-4 pt-4">
+      <div className="mb-6 pt-2 px-1">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">More</h1>
+        <p className="text-sm text-slate-500 font-medium mt-0.5">Account & System Control</p>
       </div>
 
-      {/* Profile card */}
-      <div style={{
-        background:'#8B0000', borderRadius:24, padding:'20px 18px',
-        marginBottom:16, display:'flex', alignItems:'center', gap:14,
-        position:'relative', overflow:'hidden'
-      }}>
-        <div style={{ position:'absolute',right:-12,top:-12,opacity:0.08 }}>
-          <Hexagon size={100} fill="white" color="white" />
+      {/* Profile summary card */}
+      <div className="bg-[#990a00] rounded-[28px] p-6 shadow-sm text-white flex items-center gap-5 mb-6 relative overflow-hidden">
+        <div className="absolute right-[-10%] top-[-10%] opacity-10">
+          <Hexagon size={120} fill="white" />
         </div>
-        <div style={{
-          width:50,height:50,borderRadius:'50%',
-          background:'rgba(255,255,255,0.18)',
-          color:'#fff',display:'flex',alignItems:'center',
-          justifyContent:'center',fontWeight:900,fontSize:18,flexShrink:0
-        }}>{inits}</div>
-        <div style={{ color:'#fff' }}>
-          <p style={{ fontWeight:800,fontSize:17,lineHeight:1.25 }}>{name}</p>
-          <p style={{ fontSize:12,opacity:0.65,marginTop:2 }}>{email}</p>
-          <div style={{
-            display:'inline-flex',alignItems:'center',gap:5,
-            background:'rgba(255,255,255,0.15)',
-            padding:'4px 10px',borderRadius:100,marginTop:8
-          }}>
-            <div style={{ width:6,height:6,borderRadius:'50%',background:'#86efac' }} />
-            <span style={{ fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.9)',letterSpacing:'0.05em' }}>
-              Pro Beekeeper
-            </span>
+        <div className="w-16 h-16 shrink-0 rounded-[20px] bg-white/20 flex items-center justify-center text-white font-black text-xl border border-white/20 shadow-sm backdrop-blur-sm">
+          {inits}
+        </div>
+        <div className="min-w-0 z-10">
+          <h2 className="text-xl font-bold truncate leading-tight">{name}</h2>
+          <p className="text-sm font-medium text-white/60 truncate mb-2">{email}</p>
+          <div className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-white/10 border border-white/10 inline-flex">
+            <Shield size={12} className="text-white/80" />
+            <span className="text-[10px] font-black text-white uppercase tracking-widest">Active Session</span>
           </div>
         </div>
       </div>
 
-      {/* Feedback History */}
-      <h3 className="section-label">Feedback Data</h3>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <Row
-          Icon={BarChart3}
-          label="Feedback History"
-          sub={fbLoading ? 'Loading...' : `${feedbackData?.total || 0} entries recorded`}
-          onClick={() => navigate('/feedback-history')}
-        />
+      {/* System Status Section - High Density Operational Data */}
+      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">System Status</h3>
+      <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-5 mb-8">
+        <div className="grid grid-cols-2 gap-y-6">
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isOnline ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+              {isOnline ? <Cloud size={16} /> : <CloudOff size={16} />}
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Connectivity</p>
+              <p className="text-xs font-black text-slate-800">{isOnline ? 'Online' : 'Offline'}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isSyncing ? 'bg-amber-50 text-amber-500' : 'bg-slate-50 text-slate-400'}`}>
+              <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Data Sync</p>
+              <p className="text-xs font-black text-slate-800">{isSyncing ? 'Syncing...' : 'Stable'}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
+              <Database size={16} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Offline Queue</p>
+              <p className="text-xs font-black text-slate-800">{outboxCount} Pending</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
+              <Clock size={16} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Last Update</p>
+              <p className="text-xs font-black text-slate-800">{lastSync}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Account */}
-      <h3 className="section-label">Account</h3>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <Row Icon={User}   label="Profile"       sub="Edit personal details" onClick={() => navigate('/profile')} />
-        <Row Icon={Bell}   label="Notifications" sub="Alert preferences" onClick={() => navigate('/notifications')} />
-        <Row Icon={Shield} label="Security"      sub="Password & 2FA" onClick={() => navigate('/security')} />
+      {/* Primary Navigation Groups */}
+      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Management</h3>
+      <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden mb-8">
+        <Row Icon={BarChart3} label="Performance" sub={fbLoading ? 'Loading data...' : `${feedbackData?.total || 0} feedback entries`} onClick={() => navigate('/feedback-history')} />
+        <div className="h-px bg-slate-50 mx-4" />
+        <Row Icon={User} label="Profile Details" sub="Identity & account settings" onClick={() => navigate('/profile')} />
+        <div className="h-px bg-slate-50 mx-4" />
+        <Row Icon={Bell} label="Intelligence Rules" sub="Notification & alert thresholds" onClick={() => navigate('/notifications')} />
       </div>
 
-      {/* Support */}
-      <h3 className="section-label">Support</h3>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <Row Icon={HelpCircle} label="Help & FAQs"   sub="Common questions" onClick={() => navigate('/help')} />
-        <Row Icon={Info}       label="About HiveOps" sub="Version 1.0 · Tamil Nadu" onClick={() => navigate('/about')} />
+      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Support</h3>
+      <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden mb-8">
+        <Row Icon={HelpCircle} label="Technical Help" sub="System FAQs & user guides" onClick={() => navigate('/help')} />
+        <div className="h-px bg-slate-50 mx-4" />
+        <Row Icon={Info} label="Legal & Privacy" sub="Version 1.2 · Terms of service" onClick={() => navigate('/about')} />
       </div>
 
-      {/* Sign out */}
-      <div className="card">
-        <Row Icon={LogOut} label="Sign out" danger onClick={() => auth.signOut()} />
+      <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
+        <Row Icon={LogOut} label="Terminate Session" danger onClick={() => auth.signOut()} />
       </div>
 
-      <p style={{ textAlign:'center',fontSize:11,color:'#ccc',marginTop:28,letterSpacing:'0.05em',fontWeight:600,textTransform:'uppercase' }}>
-        HiveOps · Precision Beekeeping
+      <p className="mt-8 mb-4 text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] text-center">
+        HiveOps · Precision Ecosystem
       </p>
     </div>
   );
 };
+import { Clock } from 'lucide-react';
+
