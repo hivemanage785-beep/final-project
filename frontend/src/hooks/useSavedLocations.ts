@@ -36,7 +36,7 @@ export function useSavedLocations(uid: string | undefined) {
               // Synthesize a deterministic display label so the dropdown
               // is always human-readable regardless of sync state.
               const syntheticName = item.name
-                || `Zone M${item.month} · Score ${Math.round((item.score || 0) * 100)}%`
+                || `Zone M${item.month} · Score ${Math.round(item.score || 0)}%`
                 || `${(item.lat || 0).toFixed(4)}, ${(item.lng || 0).toFixed(4)}`;
               return {
                 ...item,

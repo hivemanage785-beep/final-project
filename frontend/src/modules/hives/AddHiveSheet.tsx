@@ -12,7 +12,7 @@ export const AddHiveSheet = ({ isOpen, onClose, onAdded, initialLat, initialLng 
   const [lat, setLat] = useState(initialLat ? initialLat.toString() : '');
   const [lng, setLng] = useState(initialLng ? initialLng.toString() : '');
   const [boxes, setBoxes] = useState('1');
-  const [queenStatus, setQueenStatus] = useState('active');
+  const [queenStatus, setQueenStatus] = useState('healthy');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -95,7 +95,7 @@ export const AddHiveSheet = ({ isOpen, onClose, onAdded, initialLat, initialLng 
       setLat('');
       setLng('');
       setBoxes('1');
-      setQueenStatus('active');
+      setQueenStatus('healthy');
       setNotes('');
       
       onAdded();
@@ -159,9 +159,9 @@ export const AddHiveSheet = ({ isOpen, onClose, onAdded, initialLat, initialLng 
                 onChange={e => setQueenStatus(e.target.value)} 
                 className="form-select-native"
               >
-                <option value="active">Active</option>
+                <option value="healthy">Active</option>
                 <option value="missing">Missing</option>
-                <option value="requeened">Recently Requeened</option>
+                <option value="replaced">Recently Requeened</option>
               </select>
             </div>
           </div>
