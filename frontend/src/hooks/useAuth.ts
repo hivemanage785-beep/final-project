@@ -19,56 +19,75 @@ export function useAuth() {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     let unsubscribed = false;
+    let isHandlingRedirect = true;
+    let authStateFired = false;
 
     console.log("🔐 [AUTH] Initialization started...");
 
-    // 1. FAIL-SAFE TIMEOUT: Ensure initialization ALWAYS resolves
+    const completeInit = () => {
+      if (!unsubscribed) {
+        console.log("🏁 [AUTH] Initialization completed.");
+        setInitializing(false);
+        clearTimeout(timeoutId);
+      }
+    };
+
+    // 1. FAIL-SAFE TIMEOUT
     timeoutId = setTimeout(() => {
       if (initializing && !unsubscribed) {
         console.warn("⚠️ [AUTH] Initialization timeout reached. Forcing resolution.");
-        setInitializing(false);
+        completeInit();
       }
-    }, 5000); // 5 second fail-safe
+    }, 8000);
 
-    // 2. Handle Redirect Results (Non-blocking)
+    // 2. Handle Redirect Results
     getRedirectResult(auth)
       .then((result) => {
+        if (unsubscribed) return;
+        isHandlingRedirect = false;
+
         if (result?.user) {
           console.log("✅ [AUTH] Redirect result resolved:", result.user.email);
           setUser(result.user);
+          completeInit();
         } else {
           console.log("ℹ️ [AUTH] No redirect result found.");
+          if (authStateFired) completeInit();
         }
       })
       .catch(err => {
+        if (unsubscribed) return;
+        isHandlingRedirect = false;
         console.error("❌ [AUTH] Redirect resolution error:", err);
         setError(err.message);
+        completeInit();
       });
 
     // 3. Primary State Authority: onAuthStateChanged
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       if (unsubscribed) return;
+      authStateFired = true;
 
       console.log("🔄 [AUTH] Auth state changed:", u ? u.email : "Logged Out");
-      setUser(u);
       
       if (u) {
         try {
           const token = await u.getIdToken();
           localStorage.setItem('auth_token', token);
-          console.log("✅ [AUTH] Token restored.");
+          setUser(u);
+          console.log("✅ [AUTH] Session verified.");
         } catch (e) {
-          console.error("❌ [AUTH] Token restoration failed:", e);
+          console.error("❌ [AUTH] Session verification failed:", e);
+          setUser(null);
+          localStorage.removeItem('auth_token');
         }
       } else {
+        setUser(null);
         localStorage.removeItem('auth_token');
       }
       
-      // Completion signal
-      if (initializing) {
-        console.log("🏁 [AUTH] Initialization completed via onAuthStateChanged.");
-        setInitializing(false);
-        clearTimeout(timeoutId);
+      if (initializing && !isHandlingRedirect) {
+        completeInit();
       }
     });
 
