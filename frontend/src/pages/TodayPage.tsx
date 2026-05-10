@@ -269,7 +269,11 @@ export const TodayPage = ({ user }: any) => {
         </>
       )}
 
-      <AddHiveSheet isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+      <AddHiveSheet 
+        isOpen={isAddOpen} 
+        onClose={() => setIsAddOpen(false)} 
+        onAdded={() => {}} 
+      />
     </div>
   );
 };
