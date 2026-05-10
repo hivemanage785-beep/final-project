@@ -49,7 +49,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
             )}
 
             {/* Content area */}
-            <div className="overflow-y-auto px-5 py-4 pb-12 flex-1 overscroll-contain">
+            <div 
+              className="overflow-y-auto px-5 py-4 flex-1 overscroll-contain"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 96px)' }}
+            >
               {children}
             </div>
           </motion.div>

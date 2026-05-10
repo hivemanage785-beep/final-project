@@ -608,7 +608,7 @@ html, body {
   overflow-y: auto;
   transform: translateY(100%);
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-  padding-bottom: env(safe-area-inset-bottom, 12px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 12px) + 96px);
 }
 .sheet-overlay.open .sheet-panel { transform: translateY(0); }
 .sheet-handle {

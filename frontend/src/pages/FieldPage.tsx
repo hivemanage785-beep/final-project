@@ -13,13 +13,13 @@ export const FieldPage = ({ user }: any) => {
   return (
     <div className="field-page page-enter" style={{ padding: 0 }}>
       {/* Top bar */}
-      <div className="field-topbar">
+      <div className="field-topbar flex flex-col min-[380px]:flex-row items-start min-[380px]:items-center justify-between gap-4">
         <div>
           <h1 className="page-title">Field Intelligence</h1>
           <p className="page-subtitle">Analyze any location for forage suitability and flowering trends</p>
         </div>
 
-        <div style={{ display:'flex',alignItems:'center',gap:10 }}>
+        <div className="flex flex-wrap items-center gap-3 w-full min-[380px]:w-auto">
           {/* Month picker */}
           <div className="month-pill">
             <button className="month-btn" onClick={prev}><ChevronLeft size={16} /></button>

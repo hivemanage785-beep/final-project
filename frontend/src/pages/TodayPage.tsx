@@ -60,7 +60,7 @@ const KPIContainer = ({ stats, loading }: any) => (
         {loading ? (
           <div className="h-10 w-12 bg-white/20 rounded animate-pulse mb-1" />
         ) : (
-          <div className="text-[44px] font-bold tracking-tight leading-[1] mb-1">{stats.totalHives}</div>
+          <div className="text-[clamp(24px,8vw,44px)] font-bold tracking-tight leading-[1] mb-1">{stats.totalHives}</div>
         )}
         <div className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Total Hives</div>
       </div>
@@ -74,7 +74,7 @@ const KPIContainer = ({ stats, loading }: any) => (
         {loading ? (
           <div className="h-10 w-12 bg-slate-100 rounded animate-pulse mb-1" />
         ) : (
-          <div className="text-[44px] font-bold tracking-tight leading-[1] text-slate-900 mb-1">{stats.overdue}</div>
+          <div className="text-[clamp(24px,8vw,44px)] font-bold tracking-tight leading-[1] text-slate-900 mb-1">{stats.overdue}</div>
         )}
         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Due Checks</div>
       </div>

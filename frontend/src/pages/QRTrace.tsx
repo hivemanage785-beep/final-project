@@ -279,7 +279,7 @@ export const QRTrace: React.FC = () => {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12">
-             <div className="w-64 h-64 bg-slate-100 rounded-3xl border-2 border-dashed border-slate-200 flex items-center justify-center mb-8 relative overflow-hidden">
+             <div className="w-full max-w-[256px] aspect-square bg-slate-100 rounded-3xl border-2 border-dashed border-slate-200 flex items-center justify-center mb-8 relative overflow-hidden">
                <ScanLine size={48} className="text-slate-300" />
                <div className="absolute top-0 left-0 w-full h-1 bg-[#5D0623]/20 animate-[scan_2s_ease-in-out_infinite]" />
              </div>
