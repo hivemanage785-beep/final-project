@@ -58,7 +58,7 @@ const PriorityBanner = ({ alert }: { alert: Alert | null }) => {
     <div className="mb-8 px-1">
       <Link 
         to="/hives"
-        className="flex items-center gap-3 bg-rose-50 border border-rose-100 rounded-[20px] p-3 shadow-sm active:scale-[0.98] transition-transform"
+        className="flex items-center gap-3 bg-rose-50 border border-rose-100 rounded-[20px] p-4 shadow-sm active:scale-[0.98] transition-transform"
       >
         <div className="shrink-0 w-8 h-8 bg-white rounded-xl flex items-center justify-center text-rose-500 border border-rose-100">
           <AlertCircle size={18} strokeWidth={2.5} />
@@ -76,7 +76,7 @@ const PriorityBanner = ({ alert }: { alert: Alert | null }) => {
 
 const KPIContainer = ({ stats, loading }: any) => (
   <div className="grid grid-cols-2 gap-4 mb-10">
-    <div className="bg-[#9b0a00] p-6 rounded-[28px] shadow-sm text-white flex flex-col min-h-[140px] relative overflow-hidden">
+    <div className="bg-[#9b0a00] p-7 rounded-[28px] shadow-sm text-white flex flex-col min-h-[140px] relative overflow-hidden">
       <div className="absolute right-[-10%] top-[-10%] opacity-10">
         <Hexagon size={80} fill="white" />
       </div>
@@ -91,7 +91,7 @@ const KPIContainer = ({ stats, loading }: any) => (
       </div>
     </div>
     
-    <div className="bg-white p-6 rounded-[28px] shadow-sm border border-slate-100 flex flex-col min-h-[140px]">
+    <div className="bg-white p-7 rounded-[28px] shadow-sm border border-slate-100 flex flex-col min-h-[140px]">
       <div className="w-10 h-10 bg-slate-50 rounded-[14px] flex items-center justify-center border border-slate-50 mb-auto">
         <Clock size={20} className="text-[#9b0a00]" strokeWidth={2} />
       </div>
@@ -115,7 +115,7 @@ const HealthOverview = ({ hives, loading }: any) => {
       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-2">Health Overview</h3>
       <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden">
         
-        <div className="flex items-center justify-between p-5 border-b border-slate-50">
+        <div className="flex items-center justify-between p-6 border-b border-slate-50">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
               <CheckCircle2 size={18} className="text-emerald-500" strokeWidth={2.5} />
@@ -125,7 +125,7 @@ const HealthOverview = ({ hives, loading }: any) => {
           <span className="text-[17px] font-black text-slate-900 pr-2">{loading ? '..' : healthy}</span>
         </div>
         
-        <div className="flex items-center justify-between p-5 border-b border-slate-50">
+        <div className="flex items-center justify-between p-6 border-b border-slate-50">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
               <AlertTriangle size={18} className="text-amber-500" strokeWidth={2.5} />
@@ -135,7 +135,7 @@ const HealthOverview = ({ hives, loading }: any) => {
           <span className="text-[17px] font-black text-slate-900 pr-2">{loading ? '..' : needsAttention}</span>
         </div>
         
-        <div className="flex items-center justify-between p-5">
+        <div className="flex items-center justify-between p-6">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
               <AlertCircle size={18} className="text-rose-500" strokeWidth={2.5} />
@@ -240,7 +240,7 @@ export const TodayPage = ({ user }: any) => {
                 <Link 
                   key={alert.id || i} 
                   to="/hives" 
-                  className={`flex items-center justify-between p-5 active:bg-slate-50 transition-colors ${i !== filteredActivity.length - 1 ? 'border-b border-slate-50' : ''}`}
+                  className={`flex items-center justify-between p-6 active:bg-slate-50 transition-colors ${i !== filteredActivity.length - 1 ? 'border-b border-slate-50' : ''}`}
                 >
                   <div className="flex items-center gap-4 min-w-0">
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
