@@ -76,7 +76,7 @@ const PriorityBanner = ({ alert }: { alert: Alert | null }) => {
 
 const KPIContainer = ({ stats, loading }: any) => (
   <div className="grid grid-cols-2 gap-4 mb-10">
-    <div className="bg-[#9b0a00] p-8 rounded-[28px] shadow-sm text-white flex flex-col min-h-[140px] relative overflow-hidden">
+    <div className="bg-[#9b0a00] p-10 rounded-[28px] shadow-sm text-white flex flex-col min-h-[140px] relative overflow-hidden">
       <div className="absolute right-[-10%] top-[-10%] opacity-10">
         <Hexagon size={80} fill="white" />
       </div>
@@ -91,7 +91,7 @@ const KPIContainer = ({ stats, loading }: any) => (
       </div>
     </div>
     
-    <div className="bg-white p-8 rounded-[28px] shadow-sm border border-slate-100 flex flex-col min-h-[140px]">
+    <div className="bg-white p-10 rounded-[28px] shadow-sm border border-slate-100 flex flex-col min-h-[140px]">
       <div className="w-10 h-10 bg-slate-50 rounded-[14px] flex items-center justify-center border border-slate-50 mb-auto">
         <Clock size={20} className="text-[#9b0a00]" strokeWidth={2} />
       </div>
