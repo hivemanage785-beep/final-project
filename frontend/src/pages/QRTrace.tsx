@@ -287,7 +287,9 @@ export const QRTrace: React.FC = () => {
              <p className="text-center text-sm text-slate-500 mb-8 max-w-xs leading-relaxed">
                Point the camera at a Batch QR to verify provenance and environmental origin instantly.
              </p>
-             <button className="btn btn-secondary w-full max-w-xs py-4 rounded-2xl font-bold">Launch Scanner</button>
+             <button className="btn btn-secondary w-full max-w-xs py-4 rounded-2xl font-bold opacity-60 cursor-not-allowed" disabled>
+               Scanner integration coming soon
+             </button>
           </div>
         )}
       </div>

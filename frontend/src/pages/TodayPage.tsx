@@ -198,31 +198,51 @@ export const TodayPage = ({ user }: any) => {
             <div className="p-8 text-center">
                <p className="text-[13px] font-medium text-slate-400">No recent activity</p>
             </div>
-          ) : alerts.slice(0, 3).map((alert, i) => (
-            <div key={alert.id || i} className={`flex items-center justify-between p-4 ${i !== Math.min(alerts.length, 3) - 1 ? 'border-b border-slate-50' : ''}`}>
-               <div className="flex items-center gap-3">
-                 <div className={`w-10 h-10 min-w-[40px] rounded-full flex items-center justify-center shrink-0 ${
-                   alert.type === 'critical' ? 'bg-rose-50 text-rose-500' : 
-                   alert.type === 'warning' ? 'bg-amber-50 text-amber-500' :
-                   'bg-emerald-50 text-emerald-500'
-                 }`}>
-                   {alert.type === 'critical' ? <AlertCircle size={18} strokeWidth={2} /> : 
-                    alert.type === 'warning' ? <AlertTriangle size={18} strokeWidth={2} /> :
-                    alert.category === 'weather' ? <Hexagon size={18} strokeWidth={2} /> :
-                    <CheckCircle2 size={18} strokeWidth={2} />}
-                 </div>
-                 <div className="flex flex-col justify-center">
-                   <p className="text-[14px] font-semibold text-slate-800 leading-tight">
-                     {alert.title}
-                   </p>
-                   <p className="text-[12px] text-slate-500 mt-0.5">
-                     {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Just now'}
-                   </p>
-                 </div>
-               </div>
-               <ChevronRight size={18} className="text-slate-300" />
-            </div>
-          ))}
+          ) : alerts.slice(0, 3).map((alert: any, i) => {
+            const hasLink = !!alert.hive_id;
+            const content = (
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 min-w-[40px] rounded-full flex items-center justify-center shrink-0 ${
+                    alert.type === 'critical' ? 'bg-rose-50 text-rose-500' : 
+                    alert.type === 'warning' ? 'bg-amber-50 text-amber-500' :
+                    'bg-emerald-50 text-emerald-500'
+                  }`}>
+                    {alert.type === 'critical' ? <AlertCircle size={18} strokeWidth={2} /> : 
+                     alert.type === 'warning' ? <AlertTriangle size={18} strokeWidth={2} /> :
+                     alert.category === 'weather' ? <Hexagon size={18} strokeWidth={2} /> :
+                     <CheckCircle2 size={18} strokeWidth={2} />}
+                  </div>
+                  <div className="flex flex-col justify-center text-left">
+                    <p className="text-[14px] font-semibold text-slate-800 leading-tight">
+                      {alert.title}
+                    </p>
+                    <p className="text-[12px] text-slate-500 mt-0.5">
+                      {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Just now'}
+                    </p>
+                  </div>
+                </div>
+                {hasLink && <ChevronRight size={18} className="text-slate-300" />}
+              </div>
+            );
+
+            return hasLink ? (
+              <Link 
+                key={alert.id || i} 
+                to="/hives" 
+                className={`flex items-center p-4 active:bg-slate-50 transition-colors ${i !== Math.min(alerts.length, 3) - 1 ? 'border-b border-slate-50' : ''}`}
+              >
+                {content}
+              </Link>
+            ) : (
+              <div 
+                key={alert.id || i} 
+                className={`flex items-center p-4 ${i !== Math.min(alerts.length, 3) - 1 ? 'border-b border-slate-50' : ''}`}
+              >
+                {content}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
