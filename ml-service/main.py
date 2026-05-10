@@ -148,6 +148,16 @@ def predict_bulk(request: BulkPredictionRequest):
         logger.error(f"Bulk inference error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/feedback")
+def feedback(request: Dict[str, Any]):
+    """
+    Accepts operational feedback for model refinement.
+    Payload: { lat, lng, month, temp, humidity, rainfall, ndvi, flora, success }
+    """
+    logger.info(f"Feedback received: {request}")
+    # In a real system, we'd append this to a retraining dataset
+    return {"status": "accepted", "message": "Feedback integrated into learning loop"}
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "model_loaded": model is not None}

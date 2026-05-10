@@ -1,5 +1,0 @@
---- Testing Endpoints ---
-??? GET /health: 200 { status: 'ok', timestamp: 1775410529872, env: 'development' }
-??? GET /api/heatmap: 200, Points returned: undefined
-??? POST /api/score: 200, Score: undefined, Grade: undefined
---- Some Endpoints Failed! ---

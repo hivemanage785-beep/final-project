@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { ScoreResult, SavedLocation, PartnerFarmer } from '../types/score';
 import { fetchScore, postFeedback, fetchNearbyFarmers } from '../api/scoreApi';
 import { useSavedLocations } from './useSavedLocations';
@@ -17,7 +17,11 @@ interface UseScoreReturn {
   locations: SavedLocation[];
   deleteLocation: (id: string) => void;
   savedError: string | null;
+  setScoreResult: (res: ScoreResult | null) => void;
 }
+
+// Session-level singleton cache for coordinates
+const scoreCache = new Map<string, ScoreResult>();
 
 let currentController: AbortController | null = null;
 
@@ -29,22 +33,33 @@ export function useScore(user: User, setIsSavedDrawerOpen: (o: boolean) => void)
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeMarker, setActiveMarker] = useState<{ lat: number; lng: number } | null>(null);
 
-  const { locations, saveLocation, deleteLocation, error: savedError } = useSavedLocations(user.uid);
+  const uid = user?.uid;
+  const { locations, saveLocation, deleteLocation, error: savedError } = useSavedLocations(uid);
 
-  const fetchLocationScore = async (lat: number, lng: number, month: number, uid: string) => {
+  const fetchLocationScore = useCallback(async (lat: number, lng: number, month: number, uid: string) => {
+    const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)},${month}`;
+    
     setActiveMarker({ lat, lng });
     setPanelOpen(true);
     
+    // 1. Check Cache
+    if (scoreCache.has(cacheKey)) {
+      setScoreResult(scoreCache.get(cacheKey)!);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Online Guard
     if (!navigator.onLine) {
-      setError("Prediction unavailable offline. Please reconnect to analyze location.");
+      setError("Analysis unavailable offline.");
       setScoreResult(null);
       setLoading(false);
       return;
     }
 
-    if (currentController) {
-      currentController.abort();
-    }
+    // 3. Abort Stale
+    if (currentController) currentController.abort();
     currentController = new AbortController();
 
     setLoading(true);
@@ -53,56 +68,42 @@ export function useScore(user: User, setIsSavedDrawerOpen: (o: boolean) => void)
     setNearbyFarmers([]);
 
     try {
-      const url = `${import.meta.env.VITE_BACKEND_URL}/api/score`;
-      const [dataResponse, farmers] = await Promise.all([
-        fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lng, month }),
-          signal: currentController.signal
-        }),
+      // 4. Fetch
+      const [data, farmers] = await Promise.all([
+        fetchScore(lat, lng, month).catch(err => { throw err; }),
         fetchNearbyFarmers(lat, lng).catch(() => [] as PartnerFarmer[])
       ]);
 
-      if (!dataResponse.ok) {
-        throw new Error('HTTP error ' + dataResponse.status);
+      if (data) {
+        setScoreResult(data);
+        setNearbyFarmers(farmers);
+        scoreCache.set(cacheKey, data); // Hydrate cache
+
+        // 5. Background Feedback (non-blocking)
+        postFeedback({
+          lat, lng, month,
+          weatherScore: data.weatherScore,
+          floraScore: data.floraScore,
+          seasonScore: data.seasonScore,
+          finalScore: data.score,
+          floraCount: data.floraCount,
+          avgTemp: data.rawWeather.avgTemp,
+          avgRain: data.rawWeather.avgRain,
+          avgWind: data.rawWeather.avgWind,
+          uid
+        }).catch(() => {});
       }
-      const dataJson = await dataResponse.json();
-      const data = dataJson.data !== undefined ? dataJson.data : dataJson;
-
-      setScoreResult(data);
-      setNearbyFarmers(farmers);
-
-      // Fire-and-forget feedback
-      postFeedback({
-        lat, lng, month,
-        weatherScore: data.weatherScore,
-        floraScore: data.floraScore,
-        seasonScore: data.seasonScore,
-        finalScore: data.score,
-        floraCount: data.floraCount,
-        avgTemp: data.rawWeather.avgTemp,
-        avgRain: data.rawWeather.avgRain,
-        avgWind: data.rawWeather.avgWind,
-        uid
-      });
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        // DO NOTHING (silent cancel)
-      } else {
-        setError('Unable to fetch prediction. Please try again.');
-      }
+      if (err.name === 'AbortError') return;
+      setError(err.message?.includes('outside') ? err.message : 'Unable to analyze this location.');
     } finally {
-      // Only clear loading if we didn't just abort to start a new one
-      if (currentController && !currentController.signal.aborted) {
-        setLoading(false);
-      } else if (!currentController) {
+      if (!currentController?.signal.aborted) {
         setLoading(false);
       }
     }
-  };
+  }, []);
 
-  const saveCurrentLocation = (month: number) => {
+  const saveCurrentLocation = useCallback((month: number) => {
     if (scoreResult && activeMarker) {
       saveLocation({
         lat: activeMarker.lat,
@@ -110,11 +111,12 @@ export function useScore(user: User, setIsSavedDrawerOpen: (o: boolean) => void)
         score: scoreResult.score,
         grade: scoreResult.grade,
         month,
+        suitability_label: scoreResult.suitability_label || 'Analyzed Zone'
       });
       setIsSavedDrawerOpen(true);
       setPanelOpen(false);
     }
-  };
+  }, [scoreResult, activeMarker, saveLocation, setIsSavedDrawerOpen]);
 
   return {
     scoreResult,
@@ -129,5 +131,7 @@ export function useScore(user: User, setIsSavedDrawerOpen: (o: boolean) => void)
     locations,
     deleteLocation,
     savedError,
+    setScoreResult
   };
 }
+

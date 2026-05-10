@@ -1,0 +1,99 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { scoreLimiter } from '../../middlewares/rateLimiter.js';
+import { runSimulation } from '../../modules/simulation/simulation.service.js';
+import { logger } from '../../common/logger.js';
+
+const router = Router();
+
+const LocationSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  score: z.number().min(0).max(100),
+  temp: z.number().optional(),
+  humidity: z.number().optional(),
+  rainfall: z.number().optional(),
+  avgTemp: z.number().optional(),
+  avgHumidity: z.number().optional(),
+  avgRain: z.number().optional(),
+  monthlyScores: z.array(z.number()).optional()
+});
+
+const SimulateSchema = z.object({
+  locations: z.array(LocationSchema).min(1).max(5000),
+  hiveCount: z.number().int().min(1).max(500),
+  iterations: z.number().int().min(1).max(500).optional().default(50),
+});
+
+/**
+ * @swagger
+ * tags:
+ *   name: Simulate
+ *   description: Monte Carlo hive placement simulation
+ */
+
+/**
+ * @swagger
+ * /api/simulate:
+ *   post:
+ *     summary: Run a Monte Carlo simulation to find optimal hive placements
+ *     tags: [Simulate]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [locations, hiveCount]
+ *             properties:
+ *               locations:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     lat: { type: number }
+ *                     lng: { type: number }
+ *                     score: { type: number }
+ *               hiveCount:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 500
+ *               iterations:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 500
+ *                 default: 50
+ *     responses:
+ *       200:
+ *         description: Simulation result with best hive positions
+ *       400:
+ *         description: Validation error
+ */
+router.post('/', scoreLimiter, async (req, res, next) => {
+  try {
+    const parsed = SimulateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_INPUT',
+        details: parsed.error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      });
+    }
+
+    const { locations, hiveCount, iterations } = parsed.data;
+
+    logger.info(`[Simulate] hiveCount=${hiveCount} locations=${locations.length} iterations=${iterations}`);
+
+    const result = await runSimulation(locations, hiveCount, iterations, 3);
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    logger.error(`[Simulate] Error: ${error.message}`);
+    next(error);
+  }
+});
+
+export default router;

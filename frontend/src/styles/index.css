@@ -1,0 +1,895 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────
+   TOKENS
+───────────────────────────────────────────── */
+:root {
+  --c-bg:      #F5F3EF;
+  --c-surface: #FFFFFF;
+  --c-border:  #E8E5E0;
+  --c-border2: #F0EDE8;
+
+  --c-text1:   #111111;
+  --c-text2:   #555555;
+  --c-text3:   #999999;
+
+  --c-primary: #8B0000;
+  --c-primary-dim: rgba(139,0,0,0.08);
+
+  --c-green:   #15803D;
+  --c-green-bg:#DCFCE7;
+  --c-amber:   #B45309;
+  --c-amber-bg:#FEF3C7;
+  --c-red:     #B91C1C;
+  --c-red-bg:  #FEE2E2;
+  --c-blue:    #1D4ED8;
+  --c-blue-bg: #DBEAFE;
+
+  --nav-h: 64px;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --shadow-md: 0 8px 32px rgba(0,0,0,0.10);
+
+  --f: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ─────────────────────────────────────────────
+   RESET
+───────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: var(--f);
+  background: var(--c-bg);
+  color: var(--c-text1);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─────────────────────────────────────────────
+   APP SHELL  (mobile-first — identical dimensions on every tab)
+───────────────────────────────────────────── */
+
+/* Desktop surround — same beige as app so no visible gutters on any tab */
+html, body {
+  background: var(--c-bg);
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  /* Mobile frame: 430px = iPhone 14/15 Pro standard */
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--c-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* No padding here — each page type manages its own */
+  display: flex;
+  flex-direction: column;
+  scroll-behavior: smooth;
+  width: 100%;
+}
+
+/* Every page fills the scroll container fully.
+   Short-content pages (empty states) won't leave a gap.
+   The animation is also defined here as a single rule. */
+.page-enter {
+  flex: 1;
+  min-height: 100%;
+  width: 100%;
+  /* Standard page padding — same for Today, Hives, Alerts, More */
+  padding: 16px 16px 24px;
+  animation: page-fade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes page-fade {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─────────────────────────────────────────────
+   NAVIGATION
+───────────────────────────────────────────── */
+.bottom-nav {
+  position: sticky;
+  bottom: 0;
+  height: 76px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: stretch;
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.nav-link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-decoration: none;
+  color: #94A3B8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+.nav-link:active {
+  transform: scale(0.92);
+}
+
+.nav-link.active {
+  color: #5D0623;
+}
+
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: #5D0623;
+  border-radius: 0 0 100px 100px;
+}
+
+/* ─────────────────────────────────────────────
+   TYPOGRAPHY
+───────────────────────────────────────────── */
+.page-title {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-text3);
+  margin-top: 3px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+/* ─────────────────────────────────────────────
+   CARD
+───────────────────────────────────────────── */
+.card {
+  background: var(--c-surface);
+  border-radius: 24px;
+  border: 1px solid var(--c-border);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  overflow: hidden;
+}
+
+/* ─────────────────────────────────────────────
+   STAT CARDS
+───────────────────────────────────────────── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--c-surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  padding: 18px 16px;
+  box-shadow: var(--shadow);
+}
+
+.stat-card.primary {
+  background: var(--c-primary);
+  border: none;
+  color: #fff;
+}
+
+.stat-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.stat-card .stat-card-icon    { background: rgba(0,0,0,0.04); }
+.stat-card.primary .stat-card-icon { background: rgba(255,255,255,0.15); }
+
+.stat-card-value {
+  font-size: 36px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 5px;
+  letter-spacing: -1px;
+}
+
+.stat-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.65;
+}
+
+/* ─────────────────────────────────────────────
+   LIST ROWS (health overview, activity)
+───────────────────────────────────────────── */
+.row-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--c-border2);
+}
+.row-item:last-child { border-bottom: none; }
+
+.row-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.row-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text1);
+}
+
+.row-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--c-text1);
+  letter-spacing: -0.5px;
+}
+
+/* ─────────────────────────────────────────────
+   BADGES
+───────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.badge-green  { background: var(--c-green-bg);  color: var(--c-green); }
+.badge-amber  { background: var(--c-amber-bg);  color: var(--c-amber); }
+.badge-red    { background: var(--c-red-bg);    color: var(--c-red); }
+.badge-blue   { background: var(--c-blue-bg);   color: var(--c-blue); }
+.badge-primary { background: var(--c-primary-dim); color: var(--c-primary); }
+
+/* ─────────────────────────────────────────────
+   BUTTONS
+───────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--f);
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  text-decoration: none;
+  padding: 12px 20px;
+}
+.btn:active { transform: scale(0.97); opacity: 0.85; }
+
+.btn-primary  { background: var(--c-primary); color: #fff; }
+.btn-secondary { background: var(--c-border); color: var(--c-text2); }
+.btn-full     { width: 100%; }
+
+/* ─────────────────────────────────────────────
+   EMPTY STATE
+───────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--c-surface);
+  border-radius: var(--radius);
+  border: 1.5px dashed var(--c-border);
+}
+.empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--c-primary-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: var(--c-primary);
+}
+.empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--c-text1);
+}
+.empty-body {
+  font-size: 13px;
+  color: var(--c-text3);
+  line-height: 1.5;
+  max-width: 220px;
+  margin-bottom: 20px;
+}
+
+/* ─────────────────────────────────────────────
+   ERROR STATE
+───────────────────────────────────────────── */
+.error-state {
+  background: var(--c-surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  padding: 32px 20px;
+  text-align: center;
+}
+.error-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--c-red-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  color: var(--c-red);
+}
+.error-title  { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.error-body   { font-size: 13px; color: var(--c-text3); margin-bottom: 16px; }
+
+/* ─────────────────────────────────────────────
+   SKELETON
+───────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #eae7e2 25%, #f2efe9 50%, #eae7e2 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border-radius: 8px;
+}
+@keyframes skeleton-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─────────────────────────────────────────────
+   SPINNER
+───────────────────────────────────────────── */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--c-border);
+  border-top-color: var(--c-primary);
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* (page-enter animation defined in APP SHELL section above) */
+
+/* ─────────────────────────────────────────────
+   PAGE HEADER
+───────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-top: 4px;
+}
+
+/* ─────────────────────────────────────────────
+   ALERT LIST
+───────────────────────────────────────────── */
+.alert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--c-border2);
+  position: relative;
+}
+.alert-card:last-child { border-bottom: none; }
+
+.alert-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alert-content { flex: 1; min-width: 0; }
+.alert-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text1);
+  line-height: 1.35;
+  margin-bottom: 4px;
+  padding-right: 14px;
+}
+.alert-desc  { font-size: 12px; color: var(--c-text2); line-height: 1.5; margin-bottom: 5px; }
+.alert-meta  { font-size: 11px; color: var(--c-text3); font-weight: 500; }
+.alert-dot {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c-red);
+}
+
+/* ─────────────────────────────────────────────
+   HIVE CARD
+───────────────────────────────────────────── */
+.hive-card {
+  background: var(--c-surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  padding: 16px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
+.hive-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.hive-card-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-border2);
+}
+.hive-meta-item {
+  background: var(--c-bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  text-align: center;
+}
+.hive-meta-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--c-text3); margin-bottom: 4px; }
+.hive-meta-value { font-size: 13px; font-weight: 700; color: var(--c-text1); }
+
+/* ─────────────────────────────────────────────
+   MAP OVERLAY CONTROLS
+───────────────────────────────────────────── */
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 500px;
+  flex: 1;
+}
+
+.map-fabs {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 400;
+}
+
+.fab {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.20);
+  transition: transform 0.12s;
+}
+.fab:active { transform: scale(0.9); }
+.fab-white  { background: #fff; color: #444; }
+.fab-primary { background: var(--c-primary); color: #fff; }
+
+.map-legend {
+  position: absolute;
+  bottom: 20px;
+  left: 16px;
+  background: rgba(255,255,255,0.94);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  z-index: 400;
+  min-width: 100px;
+  backdrop-filter: blur(6px);
+}
+.legend-title { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #555; margin-bottom: 7px; }
+.legend-row   { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.legend-dot   { width: 8px; height: 8px; border-radius: 50%; }
+.legend-label { font-size: 11px; font-weight: 600; color: #444; }
+.legend-bar   { height: 4px; border-radius: 4px; background: linear-gradient(to right, #DC2626, #F59E0B, #16A34A); margin-top: 6px; }
+
+/* ─────────────────────────────────────────────
+   SCORE MODAL (bottom sheet)
+───────────────────────────────────────────── */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s;
+}
+.sheet-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+.sheet-panel {
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+}
+.sheet-overlay.open .sheet-panel { transform: translateY(0); }
+.sheet-handle {
+  width: 36px; height: 4px;
+  background: var(--c-border);
+  border-radius: 4px;
+  margin: 12px auto 0;
+}
+.sheet-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--c-border2);
+  position: relative;
+}
+.sheet-title { font-size: 17px; font-weight: 800; color: var(--c-text1); }
+.sheet-sub   { font-size: 12px; color: var(--c-text3); margin-top: 2px; }
+.sheet-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: var(--c-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--c-text2);
+}
+.sheet-body { padding: 18px 20px 24px; }
+
+.info-pill-row { display: flex; gap: 10px; }
+.info-pill {
+  flex: 1;
+  background: var(--c-bg);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.info-pill-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c-text3); }
+.info-pill-value { font-size: 15px; font-weight: 800; color: var(--c-text1); }
+
+.score-ring-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+.score-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.score-ring-inner { position: absolute; text-align: center; }
+.score-num { font-size: 30px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
+.score-of  { font-size: 10px; font-weight: 600; color: var(--c-text3); }
+
+.weather-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.weather-tile {
+  background: var(--c-bg);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.weather-val { font-size: 17px; font-weight: 800; color: var(--c-text1); }
+.weather-key { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--c-text3); margin-top: 3px; }
+
+/* ─────────────────────────────────────────────
+   SAVED LOCATIONS DRAWER
+───────────────────────────────────────────── */
+.drawer-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 450;
+  display: flex;
+  align-items: flex-end;
+}
+.drawer-panel {
+  width: 100%;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  max-height: 65%;
+  overflow-y: auto;
+  padding-bottom: 16px;
+}
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--c-border2);
+}
+
+/* ─────────────────────────────────────────────
+   AUTH SCREEN
+───────────────────────────────────────────── */
+.auth-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-bg);
+  padding: 24px;
+}
+.auth-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px 24px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+
+/* ─────────────────────────────────────────────
+   MORE PAGE ROWS
+───────────────────────────────────────────── */
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--c-border2);
+  transition: background 0.1s, transform 0.1s;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row:active { background: var(--c-bg); transform: scale(0.98); }
+.settings-row-icon {
+  width: 44px; height: 44px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.settings-row-label { flex: 1; font-size: 14px; font-weight: 700; color: var(--c-text1); line-height: 1.3; }
+.settings-row-sub   { font-size: 12px; color: var(--c-text3); margin-top: 1px; line-height: 1.4; }
+
+/* ─────────────────────────────────────────────
+   FIELD PAGE
+───────────────────────────────────────────── */
+/* Field page fills the shell with no padding (map needs full bleed) */
+.field-page {
+  display: flex;
+  flex-direction: column;
+  /* padding: 0 — field page opts out; map fills edge-to-edge */
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+.field-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 16px 12px;
+  background: var(--c-bg);
+  flex-shrink: 0;
+  gap: 12px;
+}
+.month-pill {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #fff;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.month-btn {
+  width: 36px; height: 36px;
+  border: none; background: none;
+  cursor: pointer; color: var(--c-text2);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s;
+}
+.month-btn:active { background: var(--c-border); transform: scale(0.92); }
+.month-name {
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-text1);
+  border-left: 1px solid var(--c-border);
+  border-right: 1px solid var(--c-border);
+}
+.field-map { flex: 1; position: relative; }
+
+/* Leaflet fix */
+.leaflet-container { z-index: 1; }
+
+/* ─────────────────────────────────────────────
+   NATIVE SELECT — Cross-browser rendering fix
+   ─────────────────────────────────────────────
+   Problem: Chromium + Android WebView do not inherit CSS color into
+   native <option> elements when a non-system background-color is set
+   on <select>. On dark-mode OS systems this renders option text as
+   white/invisible against a white background.
+
+   Fix: Explicitly set background-color and color on both the <select>
+   and every <option> descendant. These values override OS system-color
+   scheme rendering across:
+     - Chromium / Chrome (Windows, Android, macOS)
+     - Android WebView
+     - Safari (WebKit respects these values)
+     - Firefox (always respected via inheritance, harmless to set explicitly)
+
+   Usage: className="form-select-native"
+   ─────────────────────────────────────────────── */
+.form-select-native {
+  /* Layout / chrome — preserves existing design tokens */
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  font-family: var(--f);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+
+  /* Cross-browser color enforcement */
+  background-color: #ffffff;
+  color: #111111;
+
+  /* Restore native arrow on Webkit/Blink */
+  -webkit-appearance: auto;
+  appearance: auto;
+
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.form-select-native:focus {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 1px;
+  border-color: var(--c-primary);
+}
+
+/* Force option text rendering — critical for Chromium dark-mode OS */
+.form-select-native option {
+  background-color: #ffffff;
+  color: #111111;
+}
+
+.form-select-native option:disabled {
+  color: #6b7280;
+}
+
+/* ─────────────────────────────────────────────
+   INPUT FIELD — Shared input/select/textarea base
+   Used by: HiveDetailsSheet (className="input-field")
+   ─────────────────────────────────────────────── */
+.input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  font-family: var(--f);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  background-color: #ffffff;
+  color: #111111;
+  -webkit-appearance: auto;
+  appearance: auto;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+.input-field:focus {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 1px;
+  border-color: var(--c-primary);
+}
+
+/* Enforce option rendering inside .input-field selects */
+.input-field option {
+  background-color: #ffffff;
+  color: #111111;
+}
+
+.input-field option:disabled {
+  color: #6b7280;
+}
+

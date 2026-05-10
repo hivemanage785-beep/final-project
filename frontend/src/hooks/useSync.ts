@@ -11,6 +11,7 @@
  * MEDIUM:   No error differentiation — network vs server vs conflict errors all treated same.
  */
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { useAuth } from './useAuth';
 import { apiFetch } from '../lib/api';
@@ -56,6 +57,18 @@ export function useSync() {
             await db.inspections.bulkPut(ins);
           }
         }
+      }
+
+      // Pull Saved Locations
+      const locations = await apiFetch('/api/saved-locations', { method: 'GET' });
+      if (Array.isArray(locations)) {
+        await db.savedLocations.bulkPut(locations);
+      }
+
+      // Pull Harvests
+      const harvests = await apiFetch('/api/harvests', { method: 'GET' });
+      if (Array.isArray(harvests)) {
+        await db.harvests.bulkPut(harvests);
       }
     } catch(e) {
       console.warn("Failed to sync down from server:", e);
@@ -156,5 +169,14 @@ export function useSync() {
     if (isOnline) flushOutbox();
   }, [isOnline, flushOutbox]);
 
-  return { isOnline, isSyncing, queueOperation, flushOutbox };
+  const pendingCount = useLiveQuery(async () => {
+    try {
+      return await db.outbox.count();
+    } catch (e) {
+      console.warn("[Sync] Dexie count failed during initialization:", e);
+      return 0;
+    }
+  }, []) || 0;
+
+  return { isOnline, isSyncing, pendingCount, queueOperation, flushOutbox };
 }

@@ -60,11 +60,16 @@ export const MorePage = ({ user }: any) => {
 
   return (
     <div className="page-enter">
-      <p className="page-title" style={{ marginBottom:20 }}>More</p>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">More</h1>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Account &amp; settings</p>
+        </div>
+      </div>
 
       {/* Profile card */}
       <div style={{
-        background:'#8B0000', borderRadius:18, padding:'20px 18px',
+        background:'#8B0000', borderRadius:24, padding:'20px 18px',
         marginBottom:16, display:'flex', alignItems:'center', gap:14,
         position:'relative', overflow:'hidden'
       }}>
@@ -94,8 +99,8 @@ export const MorePage = ({ user }: any) => {
       </div>
 
       {/* Feedback History */}
-      <p className="section-label">Feedback Data</p>
-      <div className="card" style={{ marginBottom:14 }}>
+      <h3 className="section-label">Feedback Data</h3>
+      <div className="card" style={{ marginBottom: 20 }}>
         <Row
           Icon={BarChart3}
           label="Feedback History"
@@ -105,16 +110,16 @@ export const MorePage = ({ user }: any) => {
       </div>
 
       {/* Account */}
-      <p className="section-label">Account</p>
-      <div className="card" style={{ marginBottom:14 }}>
+      <h3 className="section-label">Account</h3>
+      <div className="card" style={{ marginBottom: 20 }}>
         <Row Icon={User}   label="Profile"       sub="Edit personal details" onClick={() => navigate('/profile')} />
         <Row Icon={Bell}   label="Notifications" sub="Alert preferences" onClick={() => navigate('/notifications')} />
         <Row Icon={Shield} label="Security"      sub="Password & 2FA" onClick={() => navigate('/security')} />
       </div>
 
       {/* Support */}
-      <p className="section-label">Support</p>
-      <div className="card" style={{ marginBottom:14 }}>
+      <h3 className="section-label">Support</h3>
+      <div className="card" style={{ marginBottom: 20 }}>
         <Row Icon={HelpCircle} label="Help & FAQs"   sub="Common questions" onClick={() => navigate('/help')} />
         <Row Icon={Info}       label="About HiveOps" sub="Version 1.0 · Tamil Nadu" onClick={() => navigate('/about')} />
       </div>

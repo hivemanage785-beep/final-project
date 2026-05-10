@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -23,6 +23,12 @@ if (missingVars.length > 0) {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// Configure persistence to survive refreshes
+setPersistence(auth, browserLocalPersistence).catch(err => {
+  console.error("Auth Persistence Error:", err);
+});
+
 export const storage = getStorage(app);
 
 export enum OperationType {

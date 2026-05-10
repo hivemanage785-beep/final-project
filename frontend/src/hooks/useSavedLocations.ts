@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SavedLocation } from '../types/score';
-import { db } from '../lib/db';
+import { SavedLocation, db } from '../lib/db';
 import { apiGet, apiPost, apiDelete } from '../services/api';
 import { useSync } from './useSync';
 
@@ -32,7 +31,20 @@ export function useSavedLocations(uid: string | undefined) {
           if (res && res.data) {
             // Update IndexedDB with fresh data
             await db.savedLocations.where('uid').equals(uid).delete();
-            const remoteData = res.data.map((item: any) => ({ ...item, uid, timestamp: new Date(item.created_at).getTime() }));
+            const remoteData = res.data.map((item: any) => {
+              // The backend API does not return a `name` field.
+              // Synthesize a deterministic display label so the dropdown
+              // is always human-readable regardless of sync state.
+              const syntheticName = item.name
+                || `Zone M${item.month} · Score ${Math.round((item.score || 0) * 100)}%`
+                || `${(item.lat || 0).toFixed(4)}, ${(item.lng || 0).toFixed(4)}`;
+              return {
+                ...item,
+                name: syntheticName,
+                uid,
+                timestamp: new Date(item.created_at).getTime()
+              };
+            });
             await db.savedLocations.bulkAdd(remoteData);
             
             // Reload from IndexedDB to maintain sorting
@@ -53,13 +65,13 @@ export function useSavedLocations(uid: string | undefined) {
     loadData();
   }, [uid]);
 
-  const saveLocation = async (location: Omit<SavedLocation, 'id' | 'timestamp'>) => {
+  const saveLocation = async (location: Omit<SavedLocation, 'id' | 'timestamp' | 'uid'>) => {
     if (!uid) return;
-    const newLoc: SavedLocation & { uid: string } = {
-      ...location,
+    const newLoc: SavedLocation = {
+      ...location as any,
       uid,
       id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(7),
-      timestamp: Date.now()
+      timestamp: new Date().toISOString()
     };
     
     // Update local state instantly

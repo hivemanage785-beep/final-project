@@ -11,11 +11,19 @@ if (!admin.apps.length) {
   try {
      const p = path.resolve(__dirname, '../../serviceAccountKey.json');
      const serviceAccount = JSON.parse(fs.readFileSync(p, 'utf-8'));
+     
+     console.log(`📡 [FIREBASE ADMIN] Initializing...`);
+     console.log(`   - Project ID: ${serviceAccount.project_id}`);
+     console.log(`   - Client Email: ${serviceAccount.client_email}`);
+     
      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: admin.credential.cert(serviceAccount),
+        projectId: serviceAccount.project_id // Explicitly set it
      });
+     
+     console.log("✅ [FIREBASE ADMIN] Successfully initialized.");
   } catch (e) {
-     console.warn("Firebase Admin failed to initialize applicationDefault. Ensure GOOGLE_APPLICATION_CREDENTIALS is set. For testing purposes without a service account, verifyIdToken will fail.", e.message);
+     console.error("❌ [FIREBASE ADMIN] Initialization failed:", e.message);
   }
 }
 

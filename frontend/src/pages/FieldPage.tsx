@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { MapView } from '../components/MapView';
+import { MapView } from '../components/field/MapView';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -11,12 +11,12 @@ export const FieldPage = ({ user }: any) => {
   const next = () => setMonth(m => (m + 1) % 12);
 
   return (
-    <div className="field-page page-enter">
+    <div className="field-page page-enter" style={{ padding: 0 }}>
       {/* Top bar */}
       <div className="field-topbar">
         <div>
-          <p style={{ fontSize:20,fontWeight:800,letterSpacing:'-0.3px',lineHeight:1.2 }}>Field</p>
-          <p style={{ fontSize:11,color:'#999',fontWeight:500,marginTop:2 }}>Tap anywhere on the map to check if it is good for placing hives</p>
+          <h1 className="page-title">Field Intelligence</h1>
+          <p className="page-subtitle">Analyze any location for forage suitability and flowering trends</p>
         </div>
 
         <div style={{ display:'flex',alignItems:'center',gap:10 }}>
@@ -34,7 +34,7 @@ export const FieldPage = ({ user }: any) => {
             padding:'6px 10px',borderRadius:8
           }}>
             <div style={{ width:6,height:6,borderRadius:'50%',background:'#8B0000',animation:'pulse 2s infinite' }} />
-            <span style={{ fontSize:10,fontWeight:800,color:'#8B0000',letterSpacing:'0.06em' }}>ML</span>
+            <span style={{ fontSize:10,fontWeight:800,color:'#8B0000',letterSpacing:'0.06em' }}>LIVE</span>
           </div>
         </div>
       </div>

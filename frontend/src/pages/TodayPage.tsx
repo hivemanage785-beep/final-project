@@ -1,159 +1,231 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { 
+  Hexagon, Clock, CheckCircle2, AlertTriangle, AlertCircle, 
+  MapPin, Bell, Wifi, WifiOff, RefreshCw, ChevronRight, Zap, Info
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Hexagon, Clock, CheckCircle2, AlertTriangle, AlertCircle, Plus } from 'lucide-react';
-import { apiGet } from '../services/api';
+import { db } from '../lib/db';
+import { useSync } from '../hooks/useSync';
+import { fetchAlerts, Alert } from '../api/alertApi';
+import { fetchSuggestions, SuggestedLocation } from '../api/scoreApi';
+import { 
+  OperationalSkeleton, OperationalLoading, OperationalEmptyState, OperationalError 
+} from '../components/states/OperationalUI';
 
-/* ── helpers ── */
+/* ── Helpers ── */
 const initials = (name?: string) =>
-  name ? name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() : 'BK';
+  name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'BK';
 
-/* ── sub-components ── */
-const StatCard = ({ label, value, primary, Icon, loading }: any) => (
-  <div className={`stat-card${primary ? ' primary' : ''}`}>
-    <div className="stat-card-icon">
-      <Icon size={18} color={primary ? '#fff' : '#8B0000'} />
+const isOverdue = (date?: string) => {
+  if (!date) return false;
+  const diff = (new Date().getTime() - new Date(date).getTime()) / (1000 * 3600 * 24);
+  return diff > 14;
+};
+
+/* ── Sub-components ── */
+const StatusHeader = ({ photoURL, displayName, isOnline }: any) => (
+  <div className="flex items-center justify-between mb-6 pt-2 px-1">
+    <div>
+      <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Today</h1>
+      <div className="flex items-center gap-2 mt-0.5">
+        <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+        <span className="text-sm text-slate-500 font-medium">
+          {isOnline ? 'Cloud connected' : 'Offline'}
+        </span>
+      </div>
     </div>
-    {loading
-      ? <div className="skeleton" style={{ height: 40, width: 56, marginBottom: 6, borderRadius: 8 }} />
-      : <div className="stat-card-value">{value}</div>
-    }
-    <div className="stat-card-label">{label}</div>
+    <div className="w-12 h-12 shrink-0 rounded-full bg-[#990a00] flex items-center justify-center text-white font-bold text-sm shadow-sm overflow-hidden border-2 border-white">
+      {photoURL ? (
+        <img 
+          src={photoURL} 
+          alt="" 
+          className="w-full h-full object-cover" 
+          onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<span>${initials(displayName)}</span>`; }} 
+        />
+      ) : (
+        <span>{initials(displayName)}</span>
+      )}
+    </div>
   </div>
 );
 
-const HealthRow = ({ icon, label, count, loading }: any) => (
-  <div className="row-item">
-    <div className="row-icon" style={{ background: icon.bg }}>
-      {icon.el}
-    </div>
-    <span className="row-title">{label}</span>
-    {loading
-      ? <div className="skeleton" style={{ width: 28, height: 24 }} />
-      : <span className="row-value">{count}</span>
-    }
-  </div>
-);
-
-/* ── page ── */
-export const TodayPage = ({ user }: any) => {
-  const [hives, setHives] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    apiGet('/api/hives')
-      .then(d => { setHives(Array.isArray(d) ? d : []); })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const stats = useMemo(() => ({
-    total:    hives.length,
-    healthy:  hives.filter(h => h.healthStatus === 'healthy').length,
-    warning:  hives.filter(h => h.healthStatus === 'warning').length,
-    critical: hives.filter(h => h.healthStatus === 'critical').length,
-  }), [hives]);
-
-  /* error */
-  if (error) return (
-    <div className="page-enter">
-      <div className="page-header"><div><p className="page-title">Today</p></div></div>
-      <div className="error-state">
-        <div className="error-icon"><AlertCircle size={22} /></div>
-        <p className="error-title">Could not load hive data</p>
-        <p className="error-body">Check your connection and try again.</p>
-        <button className="btn btn-primary" onClick={() => window.location.reload()}>Retry</button>
+const KPIContainer = ({ stats, loading }: any) => (
+  <div className="grid grid-cols-2 gap-4 mb-8">
+    <div className="bg-[#9b0a00] p-5 rounded-[24px] shadow-sm text-white flex flex-col min-h-[160px]">
+      <div className="w-12 h-12 bg-white/10 rounded-[14px] flex items-center justify-center border border-white/5 mb-auto">
+        <Hexagon size={24} className="text-white/90" strokeWidth={2} />
       </div>
-    </div>
-  );
-
-  /* main */
-  return (
-    <div className="page-enter">
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <p className="page-title">Today</p>
-          <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:4 }}>
-            <div style={{ width:7,height:7,borderRadius:'50%',background:'#22c55e' }} />
-            <span style={{ fontSize:12,fontWeight:600,color:'#888' }}>Cloud connected</span>
-          </div>
-        </div>
-        <div style={{ width:38,height:38,borderRadius:'50%',background:'#8B0000',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:13,flexShrink:0 }}>
-          {initials(user?.displayName)}
-        </div>
-      </div>
-
-      {/* Stat cards */}
-      <div className="stat-grid">
-        <StatCard label="TOTAL HIVES" value={stats.total} primary Icon={Hexagon} loading={loading} />
-        <StatCard label="DUE CHECKS"  value={stats.warning} Icon={Clock} loading={loading} />
-      </div>
-
-      {/* Health overview */}
-      <p className="section-label">Health Overview</p>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <HealthRow
-          label="Healthy & Thriving"
-          count={stats.healthy}
-          loading={loading}
-          icon={{ el: <CheckCircle2 size={18} color="#15803D" />, bg: '#DCFCE7' }}
-        />
-        <HealthRow
-          label="Needs Attention"
-          count={stats.warning}
-          loading={loading}
-          icon={{ el: <AlertTriangle size={18} color="#B45309" />, bg: '#FEF3C7' }}
-        />
-        <HealthRow
-          label="Critical"
-          count={stats.critical}
-          loading={loading}
-          icon={{ el: <AlertCircle size={18} color="#B91C1C" />, bg: '#FEE2E2' }}
-        />
-      </div>
-
-      {/* Recent activity */}
-      <p className="section-label">Recent Activity</p>
-      <div className="card">
+      <div className="mt-6">
         {loading ? (
-          [1,2].map(i => (
-            <div key={i} className="row-item">
-              <div className="skeleton" style={{ width:36,height:36,borderRadius:'50%',flexShrink:0 }} />
-              <div style={{ flex:1, display:'flex',flexDirection:'column',gap:6 }}>
-                <div className="skeleton" style={{ height:13,width:'70%' }} />
-                <div className="skeleton" style={{ height:11,width:'50%' }} />
-              </div>
+          <div className="h-10 w-12 bg-white/20 rounded animate-pulse mb-1" />
+        ) : (
+          <div className="text-[44px] font-bold tracking-tight leading-[1] mb-1">{stats.totalHives}</div>
+        )}
+        <div className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Total Hives</div>
+      </div>
+    </div>
+    
+    <div className="bg-white p-5 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[160px]">
+      <div className="w-12 h-12 bg-slate-50 rounded-[14px] flex items-center justify-center border border-slate-50 mb-auto">
+        <Clock size={24} className="text-[#9b0a00]" strokeWidth={2} />
+      </div>
+      <div className="mt-6">
+        {loading ? (
+          <div className="h-10 w-12 bg-slate-100 rounded animate-pulse mb-1" />
+        ) : (
+          <div className="text-[44px] font-bold tracking-tight leading-[1] text-slate-900 mb-1">{stats.overdue}</div>
+        )}
+        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Due Checks</div>
+      </div>
+    </div>
+  </div>
+);
+
+const HealthOverview = ({ hives, loading }: any) => {
+  const healthy = hives.filter((h: any) => h.health_status === 'good').length;
+  const needsAttention = hives.filter((h: any) => h.health_status === 'fair').length;
+  const critical = hives.filter((h: any) => h.health_status === 'poor').length;
+
+  return (
+    <div className="mb-8">
+      <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Health Overview</h3>
+      <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+        
+        <div className="flex items-center justify-between p-4 border-b border-slate-50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 min-w-[40px] rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+              <CheckCircle2 size={18} className="text-emerald-500" strokeWidth={2} />
             </div>
-          ))
-        ) : hives.length === 0 ? (
-          <div style={{ padding: '20px 0', textAlign: 'center', color: '#666' }}>
-            <Hexagon size={24} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-            <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>No hives added yet</p>
-            <p style={{ fontSize: 12, color: '#666', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{'To get started:\n\u2022 Add your first hive\n\u2022 Or explore the map to find suitable locations'}</p>
-            <p style={{ fontSize: 11, color: '#999', lineHeight: 1.5 }}>
-              <strong>Tip:</strong> Use the Field tab to check where conditions are best for your bees
-            </p>
+            <span className="text-[14px] font-semibold text-slate-800">Healthy & Thriving</span>
           </div>
-        ) : hives.slice(0,4).map((h, i) => {
-          const healthy = h.healthStatus === 'healthy';
-          return (
-            <div key={h._id||h.id||i} className="row-item">
-              <div className="row-icon" style={{ background: healthy ? '#DCFCE7' : '#FEF3C7' }}>
-                <div style={{ width:7,height:7,borderRadius:'50%',background: healthy ? '#22c55e' : '#f59e0b' }} />
-              </div>
-              <div style={{ flex:1 }}>
-                <p style={{ fontSize:13,fontWeight:700,lineHeight:1.35 }}>
-                  {h.name} — {healthy ? 'Inspection completed' : 'Check overdue'}
-                </p>
-                <p style={{ fontSize:11,color:'#999',marginTop:2 }}>
-                  {h.location?.city || 'Tamil Nadu'} · {healthy ? '2h ago' : 'Today'}
-                </p>
-              </div>
+          <span className="text-[16px] font-bold text-slate-900 pr-1">{loading ? '-' : healthy}</span>
+        </div>
+        
+        <div className="flex items-center justify-between p-4 border-b border-slate-50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 min-w-[40px] rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+              <AlertTriangle size={18} className="text-amber-500" strokeWidth={2} />
             </div>
-          );
-        })}
+            <span className="text-[14px] font-semibold text-slate-800">Needs Attention</span>
+          </div>
+          <span className="text-[16px] font-bold text-slate-900 pr-1">{loading ? '-' : needsAttention}</span>
+        </div>
+        
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 min-w-[40px] rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+              <AlertCircle size={18} className="text-rose-500" strokeWidth={2} />
+            </div>
+            <span className="text-[14px] font-semibold text-slate-800">Critical</span>
+          </div>
+          <span className="text-[16px] font-bold text-slate-900 pr-1">{loading ? '-' : critical}</span>
+        </div>
+
       </div>
     </div>
   );
 };
+
+/* ── Page ── */
+export const TodayPage = ({ user }: any) => {
+  const { isOnline, isSyncing } = useSync();
+  const pendingCount = useLiveQuery(() => db.outbox.count()) || 0;
+  
+  const hivesQuery = useLiveQuery(() => db.hives.where('uid').equals(user?.uid || '').toArray(), [user]);
+  const hives = hivesQuery || [];
+  const isHivesLoading = hivesQuery === undefined;
+
+  const savedLocationsQuery = useLiveQuery(() => db.savedLocations.where('uid').equals(user?.uid || '').toArray(), [user]);
+  const savedLocations = savedLocationsQuery || [];
+  
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [suggestions, setSuggestions] = useState<SuggestedLocation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadOpsData = async () => {
+      setLoading(true);
+      try {
+        const [alertData, sugData] = await Promise.all([
+          fetchAlerts().catch(() => []),
+          fetchSuggestions(11.1271, 78.6569).catch(() => [])
+        ]);
+        setAlerts(alertData);
+        setSuggestions(sugData);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (isOnline) loadOpsData();
+    else setLoading(false);
+  }, [isOnline]);
+
+  const stats = useMemo(() => ({
+    totalHives: hives.length,
+    overdue: hives.filter(h => isOverdue(h.last_inspection_date)).length,
+    bestSpots: savedLocations.filter(l => (l.score || 0) >= 70).length,
+    alerts: alerts.filter(a => a.unread).length
+  }), [hives, savedLocations, alerts]);
+
+  return (
+    <div className="page-enter bg-[#f8f9fa] min-h-[100dvh] pb-24 px-4 pt-4">
+      <StatusHeader 
+        photoURL={user?.photoURL}
+        displayName={user?.displayName}
+        isOnline={isOnline}
+      />
+
+      <KPIContainer stats={stats} loading={loading || isHivesLoading} />
+
+      <HealthOverview hives={hives} loading={loading || isHivesLoading} />
+
+      {/* Recent Activity Section */}
+      <div className="mb-8">
+        <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Recent Activity</h3>
+        
+        <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+          {loading ? (
+            <div className="p-4"><OperationalSkeleton rows={3} type="list" /></div>
+          ) : hives.length === 0 ? (
+            <div className="py-12 flex flex-col items-center justify-center text-center">
+               <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center mb-4 border border-slate-100">
+                 <Hexagon size={24} className="text-slate-300" strokeWidth={1.5} />
+               </div>
+               <p className="text-[14px] font-semibold text-slate-400">No hives added yet</p>
+            </div>
+          ) : alerts.length === 0 ? (
+            <div className="p-8 text-center">
+               <p className="text-[13px] font-medium text-slate-400">No recent activity</p>
+            </div>
+          ) : alerts.slice(0, 3).map((alert, i) => (
+            <div key={alert.id || i} className={`flex items-center justify-between p-4 ${i !== Math.min(alerts.length, 3) - 1 ? 'border-b border-slate-50' : ''}`}>
+               <div className="flex items-center gap-3">
+                 <div className={`w-10 h-10 min-w-[40px] rounded-full flex items-center justify-center shrink-0 ${
+                   alert.type === 'critical' ? 'bg-rose-50 text-rose-500' : 
+                   alert.type === 'warning' ? 'bg-amber-50 text-amber-500' :
+                   'bg-emerald-50 text-emerald-500'
+                 }`}>
+                   {alert.type === 'critical' ? <AlertCircle size={18} strokeWidth={2} /> : 
+                    alert.type === 'warning' ? <AlertTriangle size={18} strokeWidth={2} /> :
+                    alert.category === 'weather' ? <Hexagon size={18} strokeWidth={2} /> :
+                    <CheckCircle2 size={18} strokeWidth={2} />}
+                 </div>
+                 <div className="flex flex-col justify-center">
+                   <p className="text-[14px] font-semibold text-slate-800 leading-tight">
+                     {alert.title}
+                   </p>
+                   <p className="text-[12px] text-slate-500 mt-0.5">
+                     {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Just now'}
+                   </p>
+                 </div>
+               </div>
+               <ChevronRight size={18} className="text-slate-300" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+

@@ -1,214 +1,175 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Hexagon, MapPin, CheckCircle2, AlertTriangle, AlertCircle, ClipboardList } from 'lucide-react';
-import { apiGet } from '../services/api';
-import { AddHiveSheet } from '../components/AddHiveSheet';
-import { AddLogSheet } from '../components/AddLogSheet';
-import QRCodeCard from '../components/QRCodeCard';
+import React, { useState, useMemo } from 'react';
+import { Plus, Hexagon, Wifi, WifiOff, RefreshCw, AlertCircle, Filter } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, Hive } from '../lib/db';
+import { useSync } from '../hooks/useSync';
+import { useAuth } from '../hooks/useAuth';
+import { HiveCard } from '../components/cards/HiveCard';
+import { AddHiveSheet } from '../modules/hives/AddHiveSheet';
+import { AddLogSheet } from '../modules/hives/AddLogSheet';
+import { HiveDetailsSheet } from '../modules/hives/HiveDetailsSheet';
+import QRCodeCard from '../components/common/QRCodeCard';
+import { 
+  OperationalSkeleton, OperationalEmptyState 
+} from '../components/states/OperationalUI';
 
-const STATUS_MAP: Record<string, { label: string; bg: string; color: string; Icon: any }> = {
-  healthy:  { label: 'Healthy',  bg: '#DCFCE7', color: '#15803D', Icon: CheckCircle2 },
-  warning:  { label: 'Warning',  bg: '#FEF3C7', color: '#B45309', Icon: AlertTriangle },
-  critical: { label: 'Critical', bg: '#FEE2E2', color: '#B91C1C', Icon: AlertCircle },
-};
-
-const HiveCard = ({ hive, onAddLog, setSelectedBatchId }: { hive: any; onAddLog: (hive: any) => void; setSelectedBatchId: (id: string) => void }) => {
-  const s = STATUS_MAP[hive.healthStatus] ?? STATUS_MAP.warning;
-  const SI = s.Icon;
-
-  return (
-    <div className="hive-card">
-      <div className="hive-card-header">
-        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <div style={{ width:46,height:46,borderRadius:14,background:s.bg,display:'flex',alignItems:'center',justifyContent:'center' }}>
-            <Hexagon size={22} color={s.color} fill={s.color} />
-          </div>
-          <div>
-            <p style={{ fontSize:15,fontWeight:800,lineHeight:1.25 }}>{hive.name}</p>
-            <div style={{ display:'flex',alignItems:'center',gap:4,marginTop:3 }}>
-              <MapPin size={11} color="#999" />
-              <span style={{ fontSize:11,color:'#999',fontWeight:500 }}>{hive.location?.city || 'Tamil Nadu'}</span>
-            </div>
-          </div>
-        </div>
-        <span style={{
-          display:'inline-flex', alignItems:'center', gap:4,
-          padding:'5px 10px', borderRadius:100,
-          background:s.bg, color:s.color,
-          fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em'
-        }}>
-          <SI size={11} /> {s.label}
-        </span>
-      </div>
-
-      <div className="hive-card-meta">
-        {[
-          { label: 'Boxes',      value: hive.specifications?.boxes ?? '—' },
-          { label: 'Queen',      value: hive.specifications?.queenStatus ?? 'Unknown' },
-          { label: 'Last Check', value: hive.lastInspection
-              ? new Date(hive.lastInspection).toLocaleDateString('en-IN',{ day:'numeric',month:'short' })
-              : '—' },
-        ].map(({ label, value }) => (
-          <div key={label} className="hive-meta-item">
-            <div className="hive-meta-label">{label}</div>
-            <div className="hive-meta-value">{value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ paddingTop:10, borderTop:'1px solid #F0EDE8', display: 'flex', gap: 8 }}>
-        <button
-          onClick={() => onAddLog(hive)}
-          style={{
-            flex: 1, display:'flex', alignItems:'center', justifyContent:'center',
-            gap:6, padding:'9px', borderRadius:10, border:'1px solid #E2E8F0',
-            background:'#F8FAFC', fontSize:13, fontWeight:700, color:'#334155', cursor:'pointer'
-          }}
-        >
-          <ClipboardList size={15} />
-          Add Log
-        </button>
-        <button 
-          onClick={() => setSelectedBatchId(hive._id)}
-          style={{
-            flex: 1, display:'flex', alignItems:'center', justifyContent:'center',
-            gap:6, padding:'9px', borderRadius:10, border:'1px solid #E2E8F0',
-            background:'#fff', fontSize:13, fontWeight:700, color:'#334155', cursor:'pointer'
-          }}
-        >
-          Generate QR
-        </button>
-      </div>
-    </div>
-  );
+const isOverdue = (date?: string) => {
+  if (!date) return true;
+  const diff = (new Date().getTime() - new Date(date).getTime()) / (1000 * 3600 * 24);
+  return diff > 14;
 };
 
 export const HivesPage = () => {
-  const [hives, setHives] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [filter, setFilter] = useState('all');
+  const { user } = useAuth();
+  const { isOnline, isSyncing } = useSync();
+  const pendingCount = useLiveQuery(() => db.outbox.count()) || 0;
+
+  // Live query for hives with reactive updates
+  const hives = useLiveQuery(
+    () => db.hives.where('uid').equals(user?.uid || '').toArray(),
+    [user]
+  ) || [];
+
+  const [filter, setFilter] = useState<'all' | 'good' | 'fair' | 'poor'>('all');
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [logTarget, setLogTarget] = useState<any | null>(null);
+  const [logTarget, setLogTarget] = useState<Hive | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Hive | null>(null);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
-  const fetchHives = () => {
-    setLoading(true);
-    apiGet('/api/hives')
-      .then(d => setHives(Array.isArray(d) ? d : []))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    fetchHives();
-  }, []);
-
-  const filtered = filter === 'all' ? hives : hives.filter(h => h.healthStatus === filter);
+  // Operational sorting: Overdue first, then Poor Health, then Most Recent
+  const processedHives = useMemo(() => {
+    let list = filter === 'all' ? [...hives] : hives.filter(h => h.health_status === filter);
+    
+    return list.sort((a, b) => {
+      const aOverdue = isOverdue(a.last_inspection_date);
+      const bOverdue = isOverdue(b.last_inspection_date);
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      
+      const aPoor = a.health_status === 'poor';
+      const bPoor = b.health_status === 'poor';
+      if (aPoor && !bPoor) return -1;
+      if (!aPoor && bPoor) return 1;
+      
+      return new Date(b.last_inspection_date).getTime() - new Date(a.last_inspection_date).getTime();
+    });
+  }, [hives, filter]);
 
   const counts = {
-    all:      hives.length,
-    healthy:  hives.filter(h => h.healthStatus === 'healthy').length,
-    warning:  hives.filter(h => h.healthStatus === 'warning').length,
-    critical: hives.filter(h => h.healthStatus === 'critical').length,
+    all: hives.length,
+    good: hives.filter(h => h.health_status === 'good').length,
+    fair: hives.filter(h => h.health_status === 'fair').length,
+    poor: hives.filter(h => h.health_status === 'poor').length,
   };
-
-  if (error) return (
-    <div className="page-enter">
-      <div className="page-header"><p className="page-title">My Hives</p></div>
-      <div className="error-state">
-        <div className="error-icon"><AlertCircle size={22} /></div>
-        <p className="error-title">Could not load hives</p>
-        <p className="error-body">Check your connection and try again.</p>
-        <button className="btn btn-primary" onClick={() => window.location.reload()}>Retry</button>
-      </div>
-    </div>
-  );
-
-  if (loading) return (
-    <div className="page-enter">
-      <div className="page-header">
-        <p className="page-title">My Hives</p>
-        <div className="skeleton" style={{ width:38,height:38,borderRadius:'50%' }} />
-      </div>
-      {[1,2,3].map(i => (
-        <div key={i} className="skeleton" style={{ height:140,borderRadius:16,marginBottom:10 }} />
-      ))}
-    </div>
-  );
 
   return (
     <div className="page-enter">
-      <div className="page-header">
+      {/* Operational Header */}
+      <div className="flex items-center justify-between mb-8 pt-2 px-1">
         <div>
-          <p className="page-title">My Hives</p>
-          <p className="page-subtitle">{hives.length} active {hives.length === 1 ? 'apiary' : 'apiaries'}</p>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">My Hives</h1>
+          <p className="text-[15px] text-slate-400 font-medium mt-0.5">{hives.length} active apiaries</p>
         </div>
-        <button onClick={() => setIsAddOpen(true)} className="btn btn-primary" style={{ padding:'10px 14px',borderRadius:12 }}>
-          <Plus size={18} />
+        <button onClick={() => setIsAddOpen(true)} className="w-12 h-12 shrink-0 flex items-center justify-center bg-[#9b0a00] text-white rounded-[16px] shadow-sm active:scale-95 transition-transform">
+          <Plus size={24} />
         </button>
       </div>
 
+      {/* Quick Filters & Operational Density */}
       {hives.length > 0 && (
-        <div style={{ display:'flex',gap:8,overflowX:'auto',paddingBottom:4,marginBottom:16 }}>
-          {(['all','healthy','warning','critical'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              style={{
-                flexShrink:0, padding:'7px 14px', borderRadius:100, border:'none', cursor:'pointer',
-                fontSize:12, fontWeight:700, letterSpacing:'0.03em',
-                background: filter === f ? '#8B0000' : '#fff',
-                color: filter === f ? '#fff' : '#555',
-                boxShadow: filter === f ? 'none' : '0 1px 4px rgba(0,0,0,0.08)',
-              }}
-            >
-              {f.charAt(0).toUpperCase()+f.slice(1)}
-              <span style={{ marginLeft:5, opacity:0.65, fontSize:10 }}>{counts[f]}</span>
-            </button>
-          ))}
+        <div className="mb-7">
+          <div className="bg-slate-50/50 rounded-3xl p-3 border border-slate-100 flex items-center gap-3 overflow-x-auto no-scrollbar">
+            {(['all', 'good', 'fair', 'poor'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${
+                  filter === f 
+                    ? 'bg-[#9b0a00] text-white shadow-md shadow-rose-900/20' 
+                    : 'bg-white text-slate-500 border border-slate-100'
+                }`}
+              >
+                {f}
+                <span className={`opacity-60 ${filter === f ? 'text-rose-100' : 'text-slate-400'}`}>{counts[f]}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      )}
-      {hives.length > 0 && (
-        <p style={{ fontSize: 13, color: '#555', marginBottom: 16 }}>
-          Logs help track hive performance and support better decision-making over time.
-        </p>
       )}
 
-      {hives.length === 0 ? (
-        <div className="empty-state">
-          No hives added yet. Add your first hive to begin.
+      {/* Critical Status Banner */}
+      {counts.poor > 0 && filter === 'all' && (
+        <div className="bg-rose-50 border border-rose-100 rounded-2xl p-3.5 mb-6 flex items-start gap-3 animate-in slide-in-from-top duration-500">
+          <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[11px] font-black text-rose-900 uppercase tracking-widest">Operational Alert</p>
+            <p className="text-[12px] text-rose-700 font-medium leading-tight mt-0.5">
+              {counts.poor} colony units require immediate medical intervention or nutritional support.
+            </p>
+          </div>
         </div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'40px 0', color:'#aaa', fontSize:13 }}>
-          No hives match this filter.
-        </div>
-      ) : (
-        filtered.map((h, idx) => (
-          <React.Fragment key={h._id || h.id || idx}>
-            <HiveCard hive={h} onAddLog={setLogTarget} setSelectedBatchId={setSelectedBatchId} />
-          </React.Fragment>
-        ))
       )}
 
+      {/* Hive List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {hives === undefined ? (
+          <OperationalSkeleton rows={4} type="card" />
+        ) : hives.length === 0 ? (
+          <div className="bg-white rounded-[24px] border border-dashed border-slate-200 p-12 text-center mt-4">
+             <p className="text-[16px] text-slate-800 font-medium leading-relaxed">
+               No hives added yet. Add your first<br />hive to begin.
+             </p>
+          </div>
+        ) : processedHives.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#94A3B8' }}>
+            <Filter size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
+            <p style={{ fontSize: 13, fontWeight: 600 }}>No hives match '{filter}' filter</p>
+          </div>
+        ) : (
+          processedHives.map(h => (
+            <HiveCard 
+              key={h.id} 
+              hive={h} 
+              onLog={setLogTarget} 
+              onMove={setDetailTarget} // Move tab is in details
+              onDetails={setDetailTarget}
+              onTrace={(id) => setSelectedBatchId(id)}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Trace Modal Placeholder */}
       {selectedBatchId && (
-        <QRCodeCard batchId={selectedBatchId} />
+        <div onClick={() => setSelectedBatchId(null)} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 360 }}>
+            <QRCodeCard batchId={selectedBatchId} />
+            <button onClick={() => setSelectedBatchId(null)} className="btn btn-secondary btn-full" style={{ marginTop: 20, borderRadius: 12 }}>Close</button>
+          </div>
+        </div>
       )}
 
+      {/* Sheets */}
       <AddHiveSheet
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
-        onAdded={() => fetchHives()}
+        onAdded={() => {}} // useLiveQuery handles updates
       />
 
-      {logTarget && (
-        <AddLogSheet
-          isOpen={!!logTarget}
-          hiveId={logTarget._id || logTarget.id}
-          hiveName={logTarget.name}
-          onClose={() => setLogTarget(null)}
-          onAdded={() => fetchHives()}
-        />
-      )}
+      <AddLogSheet
+        isOpen={!!logTarget}
+        hiveId={logTarget?.id || ''}
+        hiveName={logTarget?.hive_id || ''}
+        onClose={() => setLogTarget(null)}
+        onAdded={() => {}} // useLiveQuery handles updates
+      />
+
+      <HiveDetailsSheet 
+        hive={detailTarget}
+        isOpen={!!detailTarget}
+        onClose={() => setDetailTarget(null)}
+      />
     </div>
   );
 };
+
