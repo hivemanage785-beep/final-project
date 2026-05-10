@@ -3,7 +3,7 @@ import { logger } from '../../common/logger.js';
 
 export async function getSavedLocations(req, res, next) {
   try {
-    const uid = req.user.uid || req.user.id;
+    const uid = req.user.uid;
     const locations = await savedLocationService.getUserLocations(uid);
     
     return res.status(200).json({ success: true, data: locations });
@@ -15,8 +15,8 @@ export async function getSavedLocations(req, res, next) {
 
 export async function createSavedLocation(req, res, next) {
   try {
-    const uid = req.user.uid || req.user.id;
-    const mongoUserId = req.user.mongoId || undefined;
+    const uid = req.user.uid;
+    const mongoUserId = req.user.id;
     const payload = req.body;
 
     const result = await savedLocationService.upsertLocation(uid, payload, mongoUserId);
@@ -34,7 +34,7 @@ export async function createSavedLocation(req, res, next) {
 
 export async function deleteSavedLocation(req, res, next) {
   try {
-    const uid = req.user.uid || req.user.id;
+    const uid = req.user.uid;
     const { id } = req.params;
 
     const result = await savedLocationService.deleteLocation(uid, id);

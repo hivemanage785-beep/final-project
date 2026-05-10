@@ -9,6 +9,7 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import { db } from '../lib/db';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -130,6 +131,12 @@ export function useAuth() {
     console.log("👋 [AUTH] Signing out...");
     try {
       localStorage.removeItem('auth_token');
+      
+      // CRITICAL: Clear all offline caches to prevent cross-user leakage
+      const tables = [db.hives, db.harvests, db.inspections, db.savedLocations, db.alerts, db.outbox];
+      await Promise.all(tables.map(table => table.clear().catch(e => console.error(`[DB] Failed to clear ${table.name}`, e))));
+      console.log("✅ [AUTH] Offline caches cleared.");
+
       await firebaseSignOut(auth);
       console.log("✅ [AUTH] Sign-out complete.");
     } catch (err: any) {

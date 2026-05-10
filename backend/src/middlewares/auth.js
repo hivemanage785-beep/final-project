@@ -52,10 +52,10 @@ export async function auth(req, res, next) {
     }
 
     req.user = {
-        ...decodedToken,
         id: user._id.toString(),
-        role: user.role,
-        isVerified: user.isVerified
+        uid: decodedToken.uid,
+        email: decodedToken.email,
+        role: user.role
     };
     
     next();

@@ -9,23 +9,19 @@ const formatDoc = (doc) => {
 };
 
 export const hiveService = {
-  async getHives(userId, queryUid) {
-    const query = [];
-    query.push({ ownerId: userId });
-    if (queryUid && queryUid !== userId) query.push({ uid: queryUid });
-
-    const snapshot = await Hive.find({ $or: query });
+  async getHives(userId) {
+    const snapshot = await Hive.find({ ownerId: userId });
     return snapshot.map(formatDoc);
   },
 
   async createHive(payload, userId) {
-    const newHive = await Hive.create({ ...payload, ownerId: userId });
+    const newHive = await Hive.create({ ...payload, ownerId: userId, uid: payload.uid });
     return formatDoc(newHive);
   },
 
   async updateHive(id, userId, payload) {
     const updated = await Hive.findOneAndUpdate(
-      { _id: id, $or: [{ ownerId: userId }, { uid: userId }] },
+      { _id: id, ownerId: userId },
       payload,
       { returnDocument: 'after' }
     );
@@ -35,7 +31,7 @@ export const hiveService = {
 
   async deleteHive(id, userId) {
     const deleted = await Hive.findOneAndDelete(
-      { _id: id, $or: [{ ownerId: userId }, { uid: userId }] }
+      { _id: id, ownerId: userId }
     );
     if (!deleted) return null;
     return { id };

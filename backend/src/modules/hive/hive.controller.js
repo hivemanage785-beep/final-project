@@ -5,7 +5,7 @@ export async function getHives(req, res, next) {
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const hives = await hiveService.getHives(req.user.id, req.query.uid);
+    const hives = await hiveService.getHives(req.user.id);
     res.status(200).json(hives);
   } catch (error) {
     console.error("HIVES API ERROR:", {

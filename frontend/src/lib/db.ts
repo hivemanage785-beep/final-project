@@ -77,6 +77,7 @@ export interface SavedLocation {
 
 export interface Alert {
   id: string;
+  uid: string;
   type: 'critical' | 'warning' | 'info';
   title: string;
   message: string;
@@ -129,7 +130,7 @@ export class AppDatabase extends Dexie {
       savedLocations: 'id, uid, month, timestamp'
     });
 
-    // Version 5 — added alerts for offline operational continuity
+    // Version 5 — added alerts (legacy — missing uid index)
     this.version(5).stores({
       hives:       'id, uid, hive_id, last_inspection_date',
       harvests:    'id, uid, hive_id, batch_id, publicId',
@@ -137,6 +138,16 @@ export class AppDatabase extends Dexie {
       outbox:      '++id, entity, action, timestamp, dedupKey',
       savedLocations: 'id, uid, month, timestamp',
       alerts:      'id, type, unread, category, timestamp'
+    });
+
+    // Version 6 — hardened alerts with uid index for isolation
+    this.version(6).stores({
+      hives:       'id, uid, hive_id, last_inspection_date',
+      harvests:    'id, uid, hive_id, batch_id, publicId',
+      inspections: 'id, uid, hive_id, date',
+      outbox:      '++id, entity, action, timestamp, dedupKey',
+      savedLocations: 'id, uid, month, timestamp',
+      alerts:      'id, uid, type, unread, category, timestamp'
     });
   }
 }
