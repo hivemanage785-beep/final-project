@@ -26,12 +26,12 @@ const isOverdue = (date?: string) => {
 
 /* ── Sub-components ── */
 const StatusHeader = ({ photoURL, displayName, isOnline }: any) => (
-  <div className="flex items-center justify-between mb-8 pt-2 px-1">
+  <div className="flex items-center justify-between mb-10 pt-2 px-1">
     <div>
       <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Today</h1>
-      <div className="flex items-center gap-2 mt-1">
-        <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+      <div className="flex items-center gap-2 mt-1.5">
+        <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           {isOnline ? 'Cloud connected' : 'Offline Mode'}
         </span>
       </div>
@@ -55,27 +55,27 @@ const PriorityBanner = ({ alert }: { alert: Alert | null }) => {
   if (!alert || alert.type !== 'critical') return null;
 
   return (
-    <div className="mb-8 px-1">
+    <div className="mb-10 px-0.5">
       <Link
         to="/hives"
-        className="flex items-center gap-3 bg-rose-50 border border-rose-100 rounded-[20px] p-4 shadow-sm active:scale-[0.98] transition-transform"
+        className="flex items-center gap-3 bg-rose-50/50 border border-rose-100/50 rounded-[20px] p-3.5 shadow-sm active:scale-[0.98] transition-transform"
       >
-        <div className="shrink-0 w-8 h-8 bg-white rounded-xl flex items-center justify-center text-rose-500 border border-rose-100">
-          <AlertCircle size={18} strokeWidth={2.5} />
+        <div className="shrink-0 w-7 h-7 bg-white rounded-lg flex items-center justify-center text-rose-500 border border-rose-100/50">
+          <AlertCircle size={15} strokeWidth={2.5} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-bold text-rose-900 truncate">
-            {alert.title.split(' - ')[0]} — <span className="font-medium text-rose-700">{alert.title.split(' - ')[1] || alert.desc}</span>
+          <p className="text-[13px] font-bold text-rose-900/80 truncate">
+            {alert.title.split(' - ')[0]} — <span className="font-semibold text-rose-700/70">{alert.title.split(' - ')[1] || alert.desc}</span>
           </p>
         </div>
-        <ChevronRight size={16} className="text-rose-300" />
+        <ChevronRight size={14} className="text-rose-200" />
       </Link>
     </div>
   );
 };
 
 const KPIContainer = ({ stats, loading }: any) => (
-  <div className="grid grid-cols-2 gap-4 mb-10">
+  <div className="grid grid-cols-2 gap-5 mb-12">
     <div className="bg-[#9b0a00] p-10 rounded-[28px] shadow-sm text-white flex flex-col min-h-[140px] relative overflow-hidden">
       <div className="absolute right-[-10%] top-[-10%] opacity-10">
         <Hexagon size={80} fill="white" />
@@ -111,8 +111,8 @@ const HealthOverview = ({ hives, loading }: any) => {
   const critical = hives.filter((h: any) => h.health_status === 'poor').length;
 
   return (
-    <div className="mb-10">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-2">Health Overview</h3>
+    <div className="mb-12">
+      <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-5 px-2">Health Overview</h3>
       <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden">
 
         <div className="flex items-center justify-between p-6 border-b border-slate-50">
@@ -197,7 +197,7 @@ export const TodayPage = ({ user }: any) => {
   if (isHivesLoading) return <OperationalLoading />;
 
   return (
-    <div className="page-enter bg-[#f8f9fa] min-h-[100dvh] pb-24 px-4 pt-4">
+    <div className="page-enter bg-[#f8f9fa] min-h-[100dvh] pb-24 px-5 pt-4">
       <StatusHeader
         displayName={user?.displayName}
         photoURL={user?.photoURL}
@@ -230,17 +230,17 @@ export const TodayPage = ({ user }: any) => {
 
           {/* Spacious Recent Activity Feed */}
           <div className="mb-10">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-2">Recent Activity</h3>
+            <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-5 px-2">Recent Activity</h3>
             <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden">
               {loading ? (
                 <div className="p-6"><OperationalSkeleton rows={3} type="list" /></div>
               ) : filteredActivity.length === 0 ? (
-                <div className="p-10 text-center text-slate-300 text-[11px] font-black uppercase tracking-widest">System Idle</div>
+                <div className="p-10 text-center text-slate-300 text-[11px] font-semibold uppercase tracking-widest">System Idle</div>
               ) : filteredActivity.map((alert: any, i) => (
                 <Link
                   key={alert.id || i}
                   to="/hives"
-                  className={`flex items-center justify-between p-6 active:bg-slate-50 transition-colors ${i !== filteredActivity.length - 1 ? 'border-b border-slate-50' : ''}`}
+                  className={`flex items-center justify-between p-5 active:bg-slate-50 transition-colors ${i !== filteredActivity.length - 1 ? 'border-b border-slate-50' : ''}`}
                 >
                   <div className="flex items-center gap-4 min-w-0">
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${alert.type === 'critical' ? 'bg-rose-50 text-rose-500' :
@@ -255,7 +255,7 @@ export const TodayPage = ({ user }: any) => {
                       <p className="text-[14px] font-bold text-slate-800 truncate leading-tight mb-1">
                         {alert.title}
                       </p>
-                      <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
                         {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Verified'}
                       </p>
                     </div>

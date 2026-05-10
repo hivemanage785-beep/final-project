@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, memo } from 'react';
 import { Hexagon, MapPin, ClipboardList, Move, Info, AlertCircle, RefreshCw, Zap } from 'lucide-react';
 import { Hive, db } from '../../lib/db';
 import { OperationalSkeleton } from '../states/OperationalUI';
@@ -18,7 +18,7 @@ const isOverdue = (date?: string) => {
   return diff > 14;
 };
 
-export const HiveCard = React.memo<HiveCardProps>(({ hive, onLog, onMove, onDetails, onTrace }) => {
+export const HiveCard = memo<HiveCardProps>(({ hive, onLog, onMove, onDetails, onTrace }) => {
   // Check for pending sync operations for this specific hive
   const pendingSync = useLiveQuery(
     () => db.outbox.where('entity').equals('hives').and(op => op.data?.id === hive.id).count(),
@@ -37,7 +37,7 @@ export const HiveCard = React.memo<HiveCardProps>(({ hive, onLog, onMove, onDeta
   const overdue = isOverdue(hive.last_inspection_date);
   const healthStatus = hive.health_status || 'fair';
   
-  const statusColors = React.useMemo(() => {
+  const statusColors = useMemo(() => {
     const colors = {
       good: { bg: '#DCFCE7', text: '#15803D', border: '#86EFAC' },
       fair: { bg: '#FEF3C7', text: '#B45309', border: '#FDE68A' },
