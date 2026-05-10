@@ -46,8 +46,14 @@ export const HiveCard = React.memo<HiveCardProps>(({ hive, onLog, onMove, onDeta
     return colors;
   }, [healthStatus]);
 
+  const borderStyle = useMemo(() => {
+    if (pendingSync > 0) return '1px solid #FEF3C7';
+    if (overdue) return '1px solid #FEE2E2';
+    return '1px solid var(--c-border)';
+  }, [pendingSync, overdue]);
+
   return (
-    <div className="card" style={{ marginBottom: 12, border: pendingSync > 0 ? '1px solid #FEF3C7' : '1px solid var(--c-border)' }}>
+    <div className="card" style={{ marginBottom: 12, border: borderStyle, background: overdue ? '#FFFDFD' : 'white' }}>
       {/* A. Identity & Sync State */}
       <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--c-border2)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -90,7 +96,7 @@ export const HiveCard = React.memo<HiveCardProps>(({ hive, onLog, onMove, onDeta
       </div>
 
       {/* B. Operational Metrics & Urgency */}
-      <div style={{ padding: '0 16px 12px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ padding: '12px 16px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {/* Core Stats */}
         <div style={{ flex: 1, minWidth: '100px', display: 'flex', gap: 16 }}>
            <div>
@@ -119,7 +125,7 @@ export const HiveCard = React.memo<HiveCardProps>(({ hive, onLog, onMove, onDeta
 
       {/* C. Environmental Intelligence (REAL data only) */}
       {envContext && (
-        <div style={{ margin: '0 12px 12px', background: 'rgba(29, 78, 216, 0.03)', padding: '10px 12px', borderRadius: 14, border: '1px solid rgba(29, 78, 216, 0.1)' }}>
+        <div style={{ margin: '0 12px 12px', background: 'rgba(29, 78, 216, 0.03)', padding: '12px', borderRadius: 16, border: '1px solid rgba(29, 78, 216, 0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Zap size={12} className="text-blue-600" fill="currentColor" />
@@ -127,7 +133,7 @@ export const HiveCard = React.memo<HiveCardProps>(({ hive, onLog, onMove, onDeta
             </div>
             <span style={{ fontSize: 10, fontWeight: 900, color: '#1D4ED8' }}>GRADE {envContext.grade || 'A'}</span>
           </div>
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginTop: 4 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginTop: 6, lineHeight: 1.4 }}>
             {envContext.suitability_label} conditions. High floral density detected in current coordinates.
           </p>
         </div>
@@ -139,20 +145,21 @@ export const HiveCard = React.memo<HiveCardProps>(({ hive, onLog, onMove, onDeta
           className="active:scale-95 transition-transform"
           onClick={() => onLog(hive)}
           style={{ 
-            flex: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             background: '#5D0623', color: 'white', border: 'none',
-            padding: '10px', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer'
+            padding: '14px', borderRadius: 14, fontSize: 13, fontWeight: 800, cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(93, 6, 35, 0.15)'
           }}
         >
-          <ClipboardList size={14} /> Log Action
+          <ClipboardList size={16} strokeWidth={2.5} /> Log Inspection
         </button>
         <button 
           className="active:scale-95 transition-transform"
           onClick={() => onMove(hive)}
           style={{ 
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            background: '#fff', color: '#475569', border: '1px solid #E2E8F0',
-            padding: '10px', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer'
+            background: '#fff', color: '#64748B', border: '1px solid #E2E8F0',
+            padding: '10px', borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: 'pointer'
           }}
         >
           <Move size={14} /> Move
@@ -161,12 +168,12 @@ export const HiveCard = React.memo<HiveCardProps>(({ hive, onLog, onMove, onDeta
           className="active:scale-95 transition-transform"
           onClick={() => onDetails(hive)}
           style={{ 
-            width: 42, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: '#F8FAFC', color: '#64748B', border: '1px solid #E2E8F0',
-            borderRadius: 12, cursor: 'pointer'
+            width: 46, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#F8FAFC', color: '#94A3B8', border: '1px solid #E2E8F0',
+            borderRadius: 14, cursor: 'pointer'
           }}
         >
-          <Info size={16} />
+          <Info size={18} />
         </button>
       </div>
     </div>
