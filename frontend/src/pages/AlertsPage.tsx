@@ -194,27 +194,29 @@ export const AlertsPage = () => {
   return (
     <div className="page-enter">
       {/* Operational Header */}
-      <div className="page-header">
+      <div className="flex justify-between items-start mb-10">
         <div>
-          <h1 className="page-title">Notifications</h1>
-          <div className="flex items-center gap-2.5 mt-1.5">
-            <div className="flex items-center gap-1">
-              {isOnline ? <Wifi size={10} color="#15803D" /> : <WifiOff size={10} color="#B91C1C" />}
-              <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: isOnline ? '#15803D' : '#B91C1C' }}>
-                {isOnline ? 'Live Feed' : 'Offline Cache'}
+          <h1 className="page-title">Intelligence</h1>
+          <div className="flex items-center gap-2.5 mt-2">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white border border-slate-100 shadow-sm">
+              <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                {isOnline ? 'Live Feed' : 'Offline'}
               </span>
             </div>
-            {(isSyncing || pendingCount > 0) && (
-              <div className="flex items-center gap-1">
-                <RefreshCw size={10} color="#B45309" className={isSyncing ? 'animate-spin' : ''} />
-                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#B45309' }}>
-                  {isSyncing ? 'Syncing...' : `${pendingCount} Local Updates`}
+            {pendingCount > 0 && (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-100">
+                <RefreshCw size={10} className={`text-amber-600 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+                  {pendingCount} Pending
                 </span>
               </div>
             )}
           </div>
         </div>
-        <Bell size={24} color="var(--c-primary)" fill="var(--c-primary)" opacity={0.15} />
+        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm">
+           <Bell size={24} className="text-[#5D0623]" />
+        </div>
       </div>
 
       {loading ? (
@@ -222,12 +224,12 @@ export const AlertsPage = () => {
           {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 16 }} />)}
         </div>
       ) : combinedAlerts.length === 0 ? (
-        <div className="empty-state" style={{ padding: '60px 24px', textAlign: 'center' }}>
-          <div style={{ width: 64, height: 64, background: '#F0FDF4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-            <CheckCircle2 size={32} color="#15803D" />
+        <div className="bg-white rounded-[32px] border border-slate-100 p-12 text-center mt-4">
+          <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100">
+            <CheckCircle2 size={32} className="text-emerald-600" />
           </div>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#1E293B', marginBottom: 8 }}>Operations Stable</h3>
-          <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
+          <h3 className="text-lg font-black text-slate-800 mb-2">Operations Stable</h3>
+          <p className="text-sm text-slate-500 leading-relaxed max-w-[240px] mx-auto">
             No critical health issues, environmental risks, or sync delays detected in your apiaries.
           </p>
         </div>
@@ -237,16 +239,18 @@ export const AlertsPage = () => {
           if (group.length === 0) return null;
 
           return (
-            <div key={category} style={{ marginBottom: 24 }}>
-              <h3 className="section-label" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                {category === 'Hive Health & Inspections' && <Hexagon size={12} />}
-                {category === 'Environmental Conditions' && <CloudRain size={12} />}
-                {category === 'Movement & Placement Guidance' && <MapPin size={12} />}
-                {category === 'Sync & Connectivity' && <RefreshCw size={12} />}
-                {category === 'System/Administrative Notices' && <Database size={12} />}
+            <div key={category} className="mb-10">
+              <h3 className="section-label flex items-center gap-2">
+                {category === 'Hive Health & Inspections' && <Hexagon size={12} className="text-[#5D0623]" />}
+                {category === 'Environmental Conditions' && <CloudRain size={12} className="text-blue-500" />}
+                {category === 'Movement & Placement Guidance' && <MapPin size={12} className="text-emerald-500" />}
+                {category === 'Sync & Connectivity' && <RefreshCw size={12} className="text-amber-500" />}
+                {category === 'System/Administrative Notices' && <Database size={12} className="text-slate-400" />}
                 {category}
               </h3>
-              {group.map(alert => <AlertCard key={alert.id} alert={alert} />)}
+              <div className="space-y-3">
+                {group.map(alert => <AlertCard key={alert.id} alert={alert} />)}
+              </div>
             </div>
           );
         })

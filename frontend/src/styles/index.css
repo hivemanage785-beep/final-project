@@ -110,9 +110,9 @@ html, body {
   flex: 1;
   min-height: 100%;
   width: 100%;
-  /* Standard page padding — same for Today, Hives, Alerts, More */
-  padding: 16px 16px 24px;
-  animation: page-fade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Standard page padding — consistent across all modules */
+  padding: 24px 20px 120px;
+  animation: page-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes page-fade {
@@ -179,28 +179,33 @@ html, body {
    TYPOGRAPHY
 ───────────────────────────────────────────── */
 .page-title {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 900;
-  letter-spacing: -1px;
+  letter-spacing: -0.04em;
   color: #0f172a;
   line-height: 1.1;
 }
 
 .page-subtitle {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--c-text3);
-  margin-top: 3px;
+  color: #64748b;
+  margin-top: 4px;
+  line-height: 1.5;
 }
 
 .section-label {
   font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #94a3b8;
-  margin-bottom: 16px;
-  line-height: 1.4;
+  margin-bottom: 20px;
+  line-height: 1;
+}
+
+.section-spacer {
+  margin-bottom: 48px;
 }
 
 /* ─────────────────────────────────────────────

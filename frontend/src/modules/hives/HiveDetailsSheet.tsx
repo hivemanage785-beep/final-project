@@ -146,21 +146,21 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title={hive.hive_id}>
-      <div className="flex bg-gray-100 p-1 rounded-xl mb-4 mt-2">
+      <div className="flex bg-slate-100/50 p-1.5 rounded-2xl mb-8">
          <button 
-           className={`flex-1 py-1.5 font-bold text-xs rounded-lg transition-all ${activeTab === 'overview' ? 'bg-white shadow-sm text-[#5D0623]' : 'text-gray-500'}`}
+           className={`flex-1 py-2.5 font-black text-[10px] rounded-xl transition-all uppercase tracking-widest ${activeTab === 'overview' ? 'bg-white shadow-sm text-[#5D0623]' : 'text-slate-400'}`}
            onClick={() => setActiveTab('overview')}
          >
            Overview
          </button>
          <button 
-           className={`flex-1 py-1.5 font-bold text-xs rounded-lg transition-all ${activeTab === 'inspections' ? 'bg-white shadow-sm text-[#5D0623]' : 'text-gray-500'}`}
+           className={`flex-1 py-2.5 font-black text-[10px] rounded-xl transition-all uppercase tracking-widest ${activeTab === 'inspections' ? 'bg-white shadow-sm text-[#5D0623]' : 'text-slate-400'}`}
            onClick={() => setActiveTab('inspections')}
          >
            Timeline
          </button>
          <button 
-           className={`flex-1 py-1.5 font-bold text-xs rounded-lg transition-all ${activeTab === 'edit' ? 'bg-white shadow-sm text-[#5D0623]' : 'text-gray-500'}`}
+           className={`flex-1 py-2.5 font-black text-[10px] rounded-xl transition-all uppercase tracking-widest ${activeTab === 'edit' ? 'bg-white shadow-sm text-[#5D0623]' : 'text-slate-400'}`}
            onClick={() => setActiveTab('edit')}
          >
            Settings
@@ -171,23 +171,23 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
         
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <div className="flex gap-3">
-              <div className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 ${isHealthy ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                <Activity size={14} /> {hive.health_status}
+            <div className="flex gap-2.5 mb-8">
+              <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${isHealthy ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/50' : 'bg-rose-50 text-rose-600 border border-rose-100/50'}`}>
+                <Activity size={12} /> {hive.health_status}
               </div>
-              <div className="px-3 py-1.5 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 bg-blue-50 text-blue-700">
+              <div className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-blue-50 text-blue-600 border border-blue-100/50">
                 Queen: {hive.queen_status}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-xl p-4 flex flex-col justify-center">
-                <span className="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Boxes</span>
-                <span className="text-2xl font-black text-gray-800">{hive.box_count}</span>
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col justify-center">
+                <span className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-2">Active Boxes</span>
+                <span className="text-2xl font-black text-slate-800">{hive.box_count}</span>
               </div>
-              <div className="bg-gray-50 rounded-xl p-4 flex flex-col justify-center">
-                <span className="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Last Check</span>
-                <span className="text-sm font-bold text-gray-800">{new Date(hive.last_inspection_date).toLocaleDateString()}</span>
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col justify-center">
+                <span className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-2">Last Check</span>
+                <span className="text-sm font-bold text-slate-800">{new Date(hive.last_inspection_date).toLocaleDateString()}</span>
               </div>
             </div>
 

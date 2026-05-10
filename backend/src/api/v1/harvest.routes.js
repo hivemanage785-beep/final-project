@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { createHarvest, getHarvestTrace, getMyHarvests, verifyBatch } from '../../modules/harvest/harvest.controller.js';
+import { getHiveTrace } from '../../modules/hive/hive.controller.js';
 import { auth, admin } from '../../middlewares/auth.js';
 import rateLimit from 'express-rate-limit';
 
@@ -121,6 +122,7 @@ router.post('/verify', auth, admin, verifyBatch);
  *         description: Batch not found
  */
 router.get('/trace/:batch_id', traceLimiter, getHarvestTrace);
+router.get('/trace/hive/:id', traceLimiter, getHiveTrace);
 router.get('/:id',             traceLimiter, getHarvestTrace);
 
 export default router;

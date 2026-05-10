@@ -80,7 +80,7 @@ export const ScorePanel: React.FC<Props> = ({
         <div className="sheet-handle" />
 
         <div className="sheet-header" style={{ padding: '12px 20px 8px' }}>
-          <p className="sheet-title" style={{ fontSize: 16 }}>Intelligence Summary</p>
+          <p className="sheet-title" style={{ fontSize: 16 }}>Environmental Analysis</p>
           <p className="sheet-sub" style={{ fontSize: 11 }}>
             {readableLocation || (coords ? `${coords.lat.toFixed(4)} N, ${coords.lng.toFixed(4)} E` : 'Selected location')}
           </p>
@@ -141,7 +141,7 @@ export const ScorePanel: React.FC<Props> = ({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                     <span style={{ fontSize: 14, fontWeight: 800, color: scoreColor }}>{result.suitability_label}</span>
                     <span style={{ fontSize: 10, background: '#F1F5F9', padding: '2px 6px', borderRadius: 4, color: '#64748B', fontWeight: 700 }}>
-                      {Math.round((result.mlConfidence || 0.95) * 100)}% CONFIDENCE
+                      {Math.round((result.mlConfidence || 0.95) * 100)}% ESTIMATE CONFIDENCE
                     </span>
                   </div>
                   <p style={{ fontSize: 13, color: '#334155', fontWeight: 500, lineHeight: 1.4 }}>

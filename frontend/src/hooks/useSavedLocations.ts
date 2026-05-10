@@ -65,7 +65,7 @@ export function useSavedLocations(uid: string | undefined) {
     loadData();
   }, [uid]);
 
-  const saveLocation = async (location: Omit<SavedLocation, 'id' | 'timestamp' | 'uid'>) => {
+  const saveLocation = async (location: Omit<SavedLocation, 'id' | 'timestamp' | 'uid'>): Promise<SavedLocation | undefined> => {
     if (!uid) return;
     const newLoc: SavedLocation = {
       ...location as any,
@@ -87,6 +87,8 @@ export function useSavedLocations(uid: string | undefined) {
     } catch (err) {
       queueOperation('savedLocations', 'create', newLoc);
     }
+
+    return newLoc;
   };
 
   const deleteLocation = async (id: string) => {

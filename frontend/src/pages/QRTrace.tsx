@@ -27,8 +27,9 @@ interface TraceResult {
 }
 
 const getStatusConfig = (status?: string) => {
-  if (status === 'verified') return { label: 'AUTHENTIC', color: '#15803D', bg: '#F0FDF4', icon: ShieldCheck };
-  if (status === 'rejected') return { label: 'INVALID', color: '#B91C1C', bg: '#FEF2F2', icon: ShieldX };
+  if (status === 'verified') return { label: 'VERIFIED RECORD', color: '#15803D', bg: '#F0FDF4', icon: ShieldCheck };
+  if (status === 'good' || status === 'fair') return { label: 'VERIFIED RECORD', color: '#15803D', bg: '#F0FDF4', icon: ShieldCheck };
+  if (status === 'rejected' || status === 'poor') return { label: 'INVALID', color: '#B91C1C', bg: '#FEF2F2', icon: ShieldX };
   return { label: 'VERIFICATION PENDING', color: '#B45309', bg: '#FFFBEB', icon: Clock };
 };
 
@@ -73,9 +74,15 @@ export const QRTrace: React.FC = () => {
   React.useEffect(() => {
     if (batchId) {
       setTraceLoading(true);
-      apiGet(`/api/harvests/trace/${batchId}`)
+      // Polymorphic routing: Batch IDs start with HT-, Hive IDs are UUIDs/String IDs
+      const isHiveId = !batchId.startsWith('HT-');
+      const endpoint = isHiveId 
+        ? `/api/batches/trace/hive/${batchId}` 
+        : `/api/batches/trace/${batchId}`;
+
+      apiGet(endpoint)
         .then(res => setTraceData(res.data || res))
-        .catch(err => setTraceError(err.message || 'Batch Trace Failed'))
+        .catch(err => setTraceError(err.message || 'Verification Failed'))
         .finally(() => setTraceLoading(false));
     }
   }, [batchId]);
@@ -111,7 +118,7 @@ export const QRTrace: React.FC = () => {
     if (traceLoading) return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-white">
         <RefreshCw className="animate-spin text-slate-300 mb-4" size={40} />
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Verifying Provenance...</p>
+        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Retrieving Batch Records...</p>
       </div>
     );
     
@@ -132,8 +139,8 @@ export const QRTrace: React.FC = () => {
            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-50 rounded-full mb-4 border border-emerald-100">
              <ShieldCheck size={32} className="text-emerald-600" />
            </div>
-           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Authenticity Report</h1>
-           <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Sourced & Verified via HiveOps Trace</p>
+           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Batch Traceability Report</h1>
+           <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Recorded & Approved via HiveOps Management</p>
            <div className="mt-6">
              <VerificationBadge status={traceData.verification_status} />
            </div>
@@ -144,25 +151,50 @@ export const QRTrace: React.FC = () => {
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <MapPin size={16} className="text-[#5D0623]" />
-              <h3 className="font-black text-xs text-slate-800 uppercase tracking-widest">Verified Origin</h3>
+              <h3 className="font-black text-xs text-slate-800 uppercase tracking-widest">
+                {(traceData as any).is_hive ? 'Hive Heritage' : 'Verified Origin'}
+              </h3>
             </div>
             <div className="grid grid-cols-2 gap-y-4">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase">Beekeeper</p>
-                <p className="text-sm font-bold text-slate-800">{traceData.beekeeper_name}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase">Flora Type</p>
-                <p className="text-sm font-bold text-slate-800">{traceData.flora}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase">Region</p>
-                <p className="text-sm font-bold text-slate-800">Tamil Nadu, IN</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase">Harvest Date</p>
-                <p className="text-sm font-bold text-slate-800">{new Date(traceData.harvest_date).toLocaleDateString()}</p>
-              </div>
+              {(traceData as any).is_hive ? (
+                <>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Hive ID</p>
+                    <p className="text-sm font-bold text-slate-800">{(traceData as any).hive_id}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Current Zone</p>
+                    <p className="text-sm font-bold text-slate-800">{(traceData as any).placement_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Health Status</p>
+                    <p className="text-sm font-bold text-slate-800 uppercase text-emerald-600">{(traceData as any).health_status}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Operational State</p>
+                    <p className="text-sm font-bold text-slate-800">{(traceData as any).box_count} Active Boxes</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Beekeeper</p>
+                    <p className="text-sm font-bold text-slate-800">{traceData.beekeeper_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Flora Type</p>
+                    <p className="text-sm font-bold text-slate-800">{traceData.flora}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Region</p>
+                    <p className="text-sm font-bold text-slate-800">Tamil Nadu, IN</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Harvest Date</p>
+                    <p className="text-sm font-bold text-slate-800">{new Date(traceData.harvest_date).toLocaleDateString()}</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -191,8 +223,8 @@ export const QRTrace: React.FC = () => {
           <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-slate-100 text-center">
             <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
               Ledger ID: {traceData.publicId}<br/>
-              Verified at: {traceData.verified_at ? new Date(traceData.verified_at).toLocaleString() : 'System Automated Verification'}<br/>
-              Data is immutable and cryptographically linked to hive records.
+              Verified at: {traceData.verified_at || (traceData as any).last_inspection ? new Date(traceData.verified_at || (traceData as any).last_inspection).toLocaleString() : 'System Automated Approval'}<br/>
+              Operational data record linked to field inspection logs.
             </p>
           </div>
         </div>
@@ -283,7 +315,7 @@ export const QRTrace: React.FC = () => {
                <ScanLine size={48} className="text-slate-300" />
                <div className="absolute top-0 left-0 w-full h-1 bg-[#5D0623]/20 animate-[scan_2s_ease-in-out_infinite]" />
              </div>
-             <h2 className="text-xl font-black text-slate-800 tracking-tight mb-2">QR Authenticator</h2>
+             <h2 className="text-xl font-black text-slate-800 tracking-tight mb-2">Traceability Scanner</h2>
              <p className="text-center text-sm text-slate-500 mb-8 max-w-xs leading-relaxed">
                Point the camera at a Batch QR to verify provenance and environmental origin instantly.
              </p>
@@ -359,7 +391,7 @@ export const QRTrace: React.FC = () => {
                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-slate-100">
                      <Lock size={14} className="text-slate-400" />
                    </div>
-                   <p className="text-[10px] text-slate-400 font-medium">Batch data is cryptographically locked and immutable.</p>
+                   <p className="text-[10px] text-slate-400 font-medium">Batch record is finalized and linked to harvest history.</p>
                  </div>
               </div>
               

@@ -57,10 +57,10 @@ export const MorePage = ({ user }: any) => {
   }, [isSyncing]);
 
   return (
-    <div className="page-enter bg-[#f8f9fa] min-h-[100dvh] pb-24 px-4 pt-4">
-      <div className="mb-6 pt-2 px-1">
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">More</h1>
-        <p className="text-sm text-slate-500 font-medium mt-0.5">Account & System Control</p>
+    <div className="page-enter bg-[#f8f9fa] min-h-[100dvh]">
+      <div className="mb-10">
+        <h1 className="page-title">Management</h1>
+        <p className="page-subtitle">Account & System Configuration</p>
       </div>
 
       {/* Profile summary card */}
@@ -82,8 +82,8 @@ export const MorePage = ({ user }: any) => {
       </div>
 
       {/* System Status Section - High Density Operational Data */}
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">System Status</h3>
-      <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-5 mb-8">
+      <h3 className="section-label">System Performance</h3>
+      <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm p-6 mb-10">
         <div className="grid grid-cols-2 gap-y-6">
           <div className="flex items-center gap-3">
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isOnline ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
@@ -128,8 +128,8 @@ export const MorePage = ({ user }: any) => {
       </div>
 
       {/* Primary Navigation Groups */}
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Management</h3>
-      <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden mb-8">
+      <h3 className="section-label">Administration</h3>
+      <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden mb-10">
         <Row Icon={BarChart3} label="Performance" sub={fbLoading ? 'Loading data...' : `${feedbackData?.total || 0} feedback entries`} onClick={() => navigate('/feedback-history')} />
         <div className="h-px bg-slate-50 mx-4" />
         <Row Icon={User} label="Profile Details" sub="Identity & account settings" onClick={() => navigate('/profile')} />
@@ -137,14 +137,14 @@ export const MorePage = ({ user }: any) => {
         <Row Icon={Bell} label="Intelligence Rules" sub="Notification & alert thresholds" onClick={() => navigate('/notifications')} />
       </div>
 
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Support</h3>
-      <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden mb-8">
+      <h3 className="section-label">Support & Resources</h3>
+      <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden mb-10">
         <Row Icon={HelpCircle} label="Technical Help" sub="System FAQs & user guides" onClick={() => navigate('/help')} />
         <div className="h-px bg-slate-50 mx-4" />
         <Row Icon={Info} label="Legal & Privacy" sub="Version 1.2 · Terms of service" onClick={() => navigate('/about')} />
       </div>
 
-      <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden">
         <Row Icon={LogOut} label="Terminate Session" danger onClick={() => auth.signOut()} />
       </div>
 

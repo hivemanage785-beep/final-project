@@ -256,7 +256,7 @@ export const TodayPage = ({ user }: any) => {
                         {alert.title}
                       </p>
                       <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-                        {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Verified'}
+                        {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recorded'}
                       </p>
                     </div>
                   </div>

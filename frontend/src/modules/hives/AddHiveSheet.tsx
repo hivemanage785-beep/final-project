@@ -5,10 +5,10 @@ import { createPortal } from 'react-dom';
 import { auth } from '../../firebase';
 import { useSavedLocations } from '../../hooks/useSavedLocations';
 
-export const AddHiveSheet = ({ isOpen, onClose, onAdded, initialLat, initialLng }: { isOpen: boolean, onClose: () => void, onAdded: () => void, initialLat?: number, initialLng?: number }) => {
+export const AddHiveSheet = ({ isOpen, onClose, onAdded, initialLat, initialLng, initialLocationId }: { isOpen: boolean, onClose: () => void, onAdded: () => void, initialLat?: number, initialLng?: number, initialLocationId?: string }) => {
   const { locations } = useSavedLocations(auth.currentUser?.uid);
   const [name, setName] = useState('');
-  const [selectedLocationId, setSelectedLocationId] = useState('');
+  const [selectedLocationId, setSelectedLocationId] = useState(initialLocationId || '');
   const [lat, setLat] = useState(initialLat ? initialLat.toString() : '');
   const [lng, setLng] = useState(initialLng ? initialLng.toString() : '');
   const [boxes, setBoxes] = useState('1');
@@ -18,16 +18,19 @@ export const AddHiveSheet = ({ isOpen, onClose, onAdded, initialLat, initialLng 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Auto-fill lat/lng when passed from props, and try to match a saved location
+  // Handle initial context inheritance
   useEffect(() => {
-    if (initialLat && initialLng) {
-      setLat(initialLat.toString());
-      setLng(initialLng.toString());
-      
+    if (initialLocationId) {
+      setSelectedLocationId(initialLocationId);
+    } else if (initialLat && initialLng) {
+      // Fallback: match by coordinates if ID not provided
       const matched = locations.find(l => Math.abs(l.lat - initialLat) < 0.0001 && Math.abs(l.lng - initialLng) < 0.0001);
       if (matched) setSelectedLocationId(matched.id || '');
     }
-  }, [initialLat, initialLng, locations]);
+    
+    if (initialLat) setLat(initialLat.toString());
+    if (initialLng) setLng(initialLng.toString());
+  }, [initialLat, initialLng, initialLocationId, locations]);
 
   // Auto-fill lat/lng when a saved location is selected
   useEffect(() => {

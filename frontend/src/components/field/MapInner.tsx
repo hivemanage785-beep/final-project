@@ -62,7 +62,8 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
   const [isAddHiveOpen, setIsAddHiveOpen] = useState(false);
   const [isPlanningOpen, setIsPlanningOpen] = useState(false);
 
-  const { locations, deleteLocation } = useSavedLocations(user?.uid);
+  const { locations, saveLocation, deleteLocation } = useSavedLocations(user?.uid);
+  const [preselectedLocationId, setPreselectedLocationId] = useState<string | undefined>(undefined);
   const {
     fetchLocationScore,
     scoreResult, loading: scoreLoading,
@@ -129,6 +130,35 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
   const handleOptimize = async () => {
     setIsPlanningOpen(true);
     setIsSavedOpen(false);
+  };
+
+  const handleUseLocationForHive = async () => {
+    if (!activeMarker || !scoreResult) return;
+    
+    // Check if this specific coordinate set is already in Saved Locations
+    const existing = locations.find(l => 
+      Math.abs(l.lat - activeMarker.lat) < 0.0001 && 
+      Math.abs(l.lng - activeMarker.lng) < 0.0001
+    );
+    
+    if (existing) {
+      setPreselectedLocationId(existing.id);
+      setIsAddHiveOpen(true);
+    } else {
+      // Auto-save the analyzed location so it can be linked to the new hive
+      const newLoc = await saveLocation({
+        lat: activeMarker.lat,
+        lng: activeMarker.lng,
+        score: scoreResult.score,
+        grade: scoreResult.grade,
+        month: selectedMonth,
+        suitability_label: scoreResult.suitability_label || 'Analyzed Zone'
+      });
+      if (newLoc) {
+        setPreselectedLocationId(newLoc.id);
+        setIsAddHiveOpen(true);
+      }
+    }
   };
 
   return (
@@ -217,16 +247,17 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
         onClose={closePanel}
         onSave={() => saveCurrentLocation(selectedMonth)}
         onRetry={() => activeMarker && handleMapClick(activeMarker.lat, activeMarker.lng)}
-        onUseLocation={() => setIsAddHiveOpen(true)}
+        onUseLocation={handleUseLocationForHive}
       />
 
       {isAddHiveOpen && selectedLocation && (
       <AddHiveSheet 
           isOpen={isAddHiveOpen} 
-          onClose={() => setIsAddHiveOpen(false)} 
-          onAdded={() => setIsAddHiveOpen(false)}
+          onClose={() => { setIsAddHiveOpen(false); setPreselectedLocationId(undefined); }} 
+          onAdded={() => { setIsAddHiveOpen(false); setPreselectedLocationId(undefined); }}
           initialLat={selectedLocation.lat}
           initialLng={selectedLocation.lng}
+          initialLocationId={preselectedLocationId}
         />
       )}
 

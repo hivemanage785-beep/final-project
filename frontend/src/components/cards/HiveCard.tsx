@@ -134,7 +134,7 @@ export const HiveCard = memo<HiveCardProps>(({ hive, onLog, onMove, onDetails, o
             <span style={{ fontSize: 10, fontWeight: 900, color: '#1D4ED8' }}>GRADE {envContext.grade || 'A'}</span>
           </div>
           <p style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginTop: 6, lineHeight: 1.4 }}>
-            {envContext.suitability_label} conditions. High floral density detected in current coordinates.
+            {envContext.suitability_label} conditions. Zone suitability analysis available for these coordinates.
           </p>
         </div>
       )}

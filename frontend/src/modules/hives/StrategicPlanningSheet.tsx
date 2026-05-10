@@ -76,7 +76,7 @@ export const StrategicPlanningSheet: React.FC<StrategicPlanningSheetProps> = ({ 
                 <h4 className="font-bold text-slate-800">Planning Settings</h4>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Configure your apiary expansion. The engine will analyze {locations.length} candidate zones 
+                Configure your apiary expansion. The system will evaluate {locations.length} candidate zones 
                 to determine the optimal multi-month migration path.
               </p>
             </div>
@@ -141,9 +141,9 @@ export const StrategicPlanningSheet: React.FC<StrategicPlanningSheetProps> = ({ 
               className="w-full btn-primary py-4 rounded-2xl flex items-center justify-center gap-2 text-sm"
             >
               {loading ? (
-                <><RefreshCw size={18} className="animate-spin" /> RUNNING OPTIMIZATION...</>
+                <><RefreshCw size={18} className="animate-spin" /> CALCULATING ESTIMATES...</>
               ) : (
-                <><Zap size={18} /> GENERATE STRATEGIC PLAN</>
+                <><Zap size={18} /> GENERATE MIGRATION ESTIMATE</>
               )}
             </button>
           </div>
@@ -153,7 +153,7 @@ export const StrategicPlanningSheet: React.FC<StrategicPlanningSheetProps> = ({ 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BarChart3 size={20} className="text-green-600" />
-                <h4 className="font-bold text-slate-800">Yield Projection</h4>
+                <h4 className="font-bold text-slate-800">Estimated Yield Outlook</h4>
               </div>
               <button onClick={reset} className="text-[10px] font-black text-[#5D0623] uppercase hover:underline">Reconfigure</button>
             </div>
@@ -163,7 +163,7 @@ export const StrategicPlanningSheet: React.FC<StrategicPlanningSheetProps> = ({ 
               <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
                 <div className="flex items-center gap-2 mb-1">
                   <TrendingUp size={14} className="text-green-600" />
-                  <span className="text-[10px] font-black text-green-700 uppercase">Projected Increase</span>
+                  <span className="text-[10px] font-black text-green-700 uppercase">Estimated Increase</span>
                 </div>
                 <div className="text-2xl font-black text-green-800">
                   +{simResult?.improvement_percent || 0}%
@@ -216,7 +216,7 @@ export const StrategicPlanningSheet: React.FC<StrategicPlanningSheetProps> = ({ 
               <p className="text-[10px] text-amber-700 leading-relaxed font-medium">
                 Projections are based on Monte Carlo simulations ({simResult?.iterations_run} iterations). 
                 Environmental variance in rural Tamil Nadu may affect actual yields. 
-                Maintain local inspections to validate strategic advice.
+                Maintain local inspections to validate migration estimates.
               </p>
             </div>
 

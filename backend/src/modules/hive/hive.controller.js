@@ -46,3 +46,13 @@ export async function deleteHive(req, res, next) {
   }
 }
 
+export async function getHiveTrace(req, res, next) {
+  try {
+    const trace = await hiveService.getHiveTrace(req.params.id);
+    if (!trace) return res.status(404).json({ success: false, error: 'Hive not found' });
+    res.status(200).json({ success: true, data: trace });
+  } catch (error) {
+    next(error);
+  }
+}
+

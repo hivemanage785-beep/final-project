@@ -34,23 +34,23 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
             {/* Handle bar */}
-            <div className="w-full flex justify-center pt-3 pb-1 cursor-pointer" onClick={onClose}>
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+            <div className="w-full flex justify-center pt-3 pb-2 cursor-pointer" onClick={onClose}>
+              <div className="w-10 h-1.5 bg-gray-200 rounded-full" />
             </div>
 
             {/* Header */}
             {title && (
-              <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="font-bold text-gray-800 text-lg">{title}</h3>
-                <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-800 rounded-full bg-gray-50">
-                  <X size={20} />
+              <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                <h3 className="font-black text-gray-900 text-xl tracking-tight">{title}</h3>
+                <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-800 rounded-full bg-gray-50 transition-colors">
+                  <X size={18} />
                 </button>
               </div>
             )}
 
             {/* Content area */}
             <div 
-              className="overflow-y-auto px-5 py-4 flex-1 overscroll-contain"
+              className="overflow-y-auto px-6 py-6 flex-1 overscroll-contain no-scrollbar"
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 96px)' }}
             >
               {children}

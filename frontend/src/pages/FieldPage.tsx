@@ -15,8 +15,8 @@ export const FieldPage = ({ user }: any) => {
       {/* Top bar */}
       <div className="field-topbar flex flex-col min-[380px]:flex-row items-start min-[380px]:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">Field Intelligence</h1>
-          <p className="page-subtitle">Analyze any location for forage suitability and flowering trends</p>
+          <h1 className="page-title">Field Analysis</h1>
+          <p className="page-subtitle">Analyze locations for estimated forage suitability and flowering trends</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full min-[380px]:w-auto">

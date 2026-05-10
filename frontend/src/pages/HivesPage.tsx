@@ -65,32 +65,31 @@ export const HivesPage = () => {
   return (
     <div className="page-enter">
       {/* Operational Header */}
-      <div className="flex items-center justify-between mb-8 pt-2 px-1">
+      <div className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">My Hives</h1>
-          <p className="text-[15px] text-slate-400 font-medium mt-0.5">{hives.length} active apiaries</p>
+          <h1 className="page-title">My Hives</h1>
+          <p className="page-subtitle">Monitoring {hives.length} active apiary units</p>
         </div>
-        <button onClick={() => setIsAddOpen(true)} className="w-12 h-12 shrink-0 flex items-center justify-center bg-[#9b0a00] text-white rounded-[16px] shadow-sm active:scale-95 transition-transform">
-          <Plus size={24} />
+        <button onClick={() => setIsAddOpen(true)} className="w-14 h-14 shrink-0 flex items-center justify-center bg-[#9b0a00] text-white rounded-[20px] shadow-lg shadow-rose-900/10 active:scale-95 transition-all">
+          <Plus size={28} />
         </button>
       </div>
 
-      {/* Quick Filters & Operational Density */}
       {hives.length > 0 && (
-        <div className="mb-7">
-          <div className="bg-slate-50/50 rounded-3xl p-3 border border-slate-100 flex items-center gap-3 overflow-x-auto no-scrollbar">
+        <div className="mb-8">
+          <div className="bg-slate-100/50 rounded-2xl p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
             {(['all', 'good', 'fair', 'poor'] as const).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${
+                className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${
                   filter === f 
-                    ? 'bg-[#9b0a00] text-white shadow-md shadow-rose-900/20' 
-                    : 'bg-white text-slate-500 border border-slate-100'
+                    ? 'bg-white shadow-sm text-[#5D0623]' 
+                    : 'text-slate-400'
                 }`}
               >
                 {f}
-                <span className={`opacity-60 ${filter === f ? 'text-rose-100' : 'text-slate-400'}`}>{counts[f]}</span>
+                <span className={`opacity-60 ${filter === f ? 'text-[#5D0623]' : 'text-slate-400'}`}>{counts[f]}</span>
               </button>
             ))}
           </div>
@@ -99,11 +98,11 @@ export const HivesPage = () => {
 
       {/* Critical Status Banner */}
       {counts.poor > 0 && filter === 'all' && (
-        <div className="bg-rose-50 border border-rose-100 rounded-2xl p-3.5 mb-6 flex items-start gap-3 animate-in slide-in-from-top duration-500">
-          <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+        <div className="bg-rose-50/50 border border-rose-100/50 rounded-2xl p-4 mb-8 flex items-start gap-3 animate-in slide-in-from-top duration-500">
+          <AlertCircle size={15} className="text-rose-600 shrink-0 mt-0.5" />
           <div>
-            <p className="text-[11px] font-black text-rose-900 uppercase tracking-widest">Operational Alert</p>
-            <p className="text-[12px] text-rose-700 font-medium leading-tight mt-0.5">
+            <p className="text-[10px] font-black text-rose-900 uppercase tracking-widest">Operational Alert</p>
+            <p className="text-[12px] text-rose-700 font-medium leading-tight mt-1">
               {counts.poor} colony units require immediate medical intervention or nutritional support.
             </p>
           </div>
@@ -111,7 +110,7 @@ export const HivesPage = () => {
       )}
 
       {/* Hive List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div className="flex flex-col gap-5">
         {hives === undefined ? (
           <OperationalSkeleton rows={4} type="card" />
         ) : hives.length === 0 ? (
