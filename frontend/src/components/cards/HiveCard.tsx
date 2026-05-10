@@ -28,10 +28,10 @@ export const HiveCard = React.memo<HiveCardProps>(({ hive, onLog, onMove, onDeta
   // Check for environmental context if available in saved locations
   const envContext = useLiveQuery(
     () => db.savedLocations
-      .where('lat').equals(hive.lat)
-      .and(l => Math.abs(l.lng - hive.lng) < 0.0001)
+      .where('uid').equals(hive.uid || '')
+      .and(l => Math.abs(l.lat - hive.lat) < 0.0001 && Math.abs(l.lng - hive.lng) < 0.0001)
       .first(),
-    [hive.lat, hive.lng]
+    [hive.uid, hive.lat, hive.lng]
   );
 
   const overdue = isOverdue(hive.last_inspection_date);
