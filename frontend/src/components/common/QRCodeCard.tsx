@@ -1,7 +1,7 @@
 import { QRCodeCanvas } from 'qrcode.react';
 
 export default function QRCodeCard({ batchId }: { batchId: string }) {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL;
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || window.location.origin;
   
   const qrValue = `${baseUrl}/trace/${batchId}`;
   

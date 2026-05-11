@@ -9,7 +9,7 @@ import { auth } from '../firebase';
 // Standard API instance with robust token injection
 // Empty baseURL = use Vite proxy (dev) or same origin (prod)
 const api = axios.create({ 
-  baseURL: import.meta.env.VITE_BACKEND_URL || '',
+  baseURL: import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || '',
   headers: { 'Content-Type': 'application/json' }
 });
 
