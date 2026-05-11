@@ -59,8 +59,14 @@ app.use('/api/docs', swaggerUiServe, swaggerUiSetup);
 
 app.use(helmet());
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: [
+    'https://buzz-off-bee.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(rateLimiter);
 app.use(express.json());
@@ -131,7 +137,11 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 
-app.listen(PORT, () => {
-  logger.info(`Backend listening on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
-});
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    logger.info(`Backend listening on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+  });
+}
+
+export default app;
 

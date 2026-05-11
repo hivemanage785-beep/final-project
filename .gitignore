@@ -64,3 +64,5 @@ frontend/fix-imports.cjs
 frontend/fix2.cjs
 frontend/fix3.cjs
 test_apis.js
+
+.vercel
