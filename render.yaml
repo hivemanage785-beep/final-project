@@ -1,0 +1,39 @@
+services:
+  # 1. ML Service (Python FastAPI)
+  - type: web
+    name: buzzoff-ml-service
+    env: python
+    plan: free
+    region: oregon
+    buildCommand: "cd ml-service && pip install -r requirements.txt"
+    startCommand: "cd ml-service && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: NODE_ENV
+        value: production
+
+  # 2. Backend Service (Node.js Express)
+  - type: web
+    name: buzzoff-backend-service
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: "cd backend && npm install"
+    startCommand: "cd backend && npm start"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false # Set this in Render Dashboard after first deploy
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ML_SERVICE_URL
+        fromService:
+          name: buzzoff-ml-service
+          type: web
+          property: host
+      - key: FRONTEND_URL
+        value: https://buzz-off-bee.vercel.app
