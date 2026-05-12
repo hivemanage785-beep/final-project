@@ -59,15 +59,13 @@ app.use('/api/docs', swaggerUiServe, swaggerUiSetup);
 
 app.use(helmet());
 app.use(cors({
-  origin: [
-    'https://buzz-off-bee.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:3001'
-  ],
+  origin: "https://buzz-off-bee.vercel.app",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
+app.options("*", cors());
 app.use(rateLimiter);
 app.use(express.json());
 app.use(requestLogger);
