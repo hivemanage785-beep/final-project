@@ -10,6 +10,7 @@ import { useSync } from '../hooks/useSync';
 import { useAuth } from '../hooks/useAuth';
 import { fetchAlerts, Alert as BackendAlert } from '../api/alertApi';
 import { Link } from 'react-router-dom';
+import { isOverdue } from '../utils/isOverdue';
 
 /* ── Types & Config ── */
 interface CombinedAlert extends BackendAlert {
@@ -30,13 +31,6 @@ const CATEGORIES = [
 const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2, success: 3 };
 
 /* ── Helpers ── */
-const isOverdue = (date?: string) => {
-  if (!date) return true;
-  const diff = (new Date().getTime() - new Date(date).getTime()) / (1000 * 3600 * 24);
-  return diff > 14;
-};
-
-/* ── Sub-components ── */
 const AlertCard: React.FC<{ alert: CombinedAlert }> = ({ alert }) => {
   const Icon = {
     critical: AlertCircle,
@@ -53,24 +47,24 @@ const AlertCard: React.FC<{ alert: CombinedAlert }> = ({ alert }) => {
   }[alert.type] || { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-100', accent: 'bg-slate-600' };
 
   return (
-    <div className={`relative p-4 mb-3 rounded-3xl border transition-all ${severityStyles.bg} ${severityStyles.border} ${alert.unread ? 'shadow-sm' : 'opacity-75'}`}>
+    <div className={`relative p-4 rounded-2xl border transition-all ${severityStyles.bg} ${severityStyles.border} ${alert.unread ? 'shadow-sm' : 'opacity-75'}`}>
       <div className="flex gap-4">
-        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 bg-white shadow-sm`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-white shadow-sm`}>
           <Icon size={18} className={severityStyles.text} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start mb-1">
-            <p className="text-[13px] font-black text-slate-900 leading-tight pr-4">{alert.title}</p>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0">{alert.source}</span>
+          <div className="flex justify-between items-start mb-0.5">
+            <p className="text-sm font-bold text-slate-900 leading-tight pr-4">{alert.title}</p>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider shrink-0">{alert.source}</span>
           </div>
-          <p className="text-[12px] text-slate-600 leading-relaxed font-medium">{alert.desc}</p>
+          <p className="text-xs text-slate-600 leading-relaxed">{alert.desc}</p>
           
           {alert.actionLabel && (
             <Link 
               to={alert.actionLink || '#'} 
-              className={`inline-flex items-center gap-1.5 mt-3 text-[10px] font-black uppercase tracking-widest active:opacity-75 transition-opacity ${severityStyles.text}`}
+              className={`inline-flex items-center gap-1 mt-2 text-[11px] font-bold uppercase tracking-wider active:opacity-75 transition-opacity ${severityStyles.text}`}
             >
-              {alert.actionLabel} <ChevronRight size={12} strokeWidth={3} />
+              {alert.actionLabel} <ChevronRight size={14} strokeWidth={2.5} />
             </Link>
           )}
         </div>
@@ -180,9 +174,11 @@ export const AlertsPage = () => {
     const all = [...localSignals, ...(dbAlerts as unknown as CombinedAlert[])];
     
     // De-duplicate (e.g. if backend and frontend both report overdue)
+    // We use a content-based hash to ensure that if a local signal matches a backend alert,
+    // only one is shown.
     const seen = new Set();
     const unique = all.filter(a => {
-      const key = `${a.category}-${a.title}`;
+      const key = `${a.category}-${a.title}-${a.desc.slice(0, 20)}`.toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -194,9 +190,9 @@ export const AlertsPage = () => {
   return (
     <div className="page-enter">
       {/* Operational Header */}
-      <div className="flex justify-between items-start mb-10">
+      <div className="flex justify-between items-start mb-6">
         <div>
-          <h1 className="page-title">Intelligence</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Intelligence</h1>
           <div className="flex items-center gap-2.5 mt-2">
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white border border-slate-100 shadow-sm">
               <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`} />
@@ -224,11 +220,11 @@ export const AlertsPage = () => {
           {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 16 }} />)}
         </div>
       ) : combinedAlerts.length === 0 ? (
-        <div className="bg-white rounded-[32px] border border-slate-100 p-12 text-center mt-4">
+        <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center mt-4 shadow-sm">
           <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100">
             <CheckCircle2 size={32} className="text-emerald-600" />
           </div>
-          <h3 className="text-lg font-black text-slate-800 mb-2">Operations Stable</h3>
+          <h3 className="text-lg font-bold text-slate-800 mb-2">Operations Stable</h3>
           <p className="text-sm text-slate-500 leading-relaxed max-w-[240px] mx-auto">
             No critical health issues, environmental risks, or sync delays detected in your apiaries.
           </p>
@@ -239,9 +235,9 @@ export const AlertsPage = () => {
           if (group.length === 0) return null;
 
           return (
-            <div key={category} className="mb-10">
-              <h3 className="section-label flex items-center gap-2">
-                {category === 'Hive Health & Inspections' && <Hexagon size={12} className="text-[#5D0623]" />}
+            <div key={category} className="mb-8">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                {category === 'Hive Health & Inspections' && <Hexagon size={14} className="text-[#5D0623]" />}
                 {category === 'Environmental Conditions' && <CloudRain size={12} className="text-blue-500" />}
                 {category === 'Movement & Placement Guidance' && <MapPin size={12} className="text-emerald-500" />}
                 {category === 'Sync & Connectivity' && <RefreshCw size={12} className="text-amber-500" />}

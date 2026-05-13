@@ -3,6 +3,7 @@ import { Hexagon, MapPin, ClipboardList, Move, Info, AlertCircle, RefreshCw, Zap
 import { Hive, db } from '../../lib/db';
 import { OperationalSkeleton } from '../states/OperationalUI';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { isOverdue } from '../../utils/isOverdue';
 
 interface HiveCardProps {
   hive: Hive;
@@ -11,12 +12,6 @@ interface HiveCardProps {
   onDetails: (hive: Hive) => void;
   onTrace: (hiveId: string) => void;
 }
-
-const isOverdue = (date?: string) => {
-  if (!date) return true;
-  const diff = (new Date().getTime() - new Date(date).getTime()) / (1000 * 3600 * 24);
-  return diff > 14;
-};
 
 export const HiveCard = memo<HiveCardProps>(({ hive, onLog, onMove, onDetails, onTrace }) => {
   // Check for pending sync operations for this specific hive

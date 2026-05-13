@@ -86,7 +86,7 @@ print("\nTraining RandomForestRegressor...")
 model = RandomForestRegressor(
     n_estimators=150,
     max_depth=15,
-    min_samples_leaf=3,   # prevents over-fitting on synthetic data
+    min_samples_leaf=3,   
     random_state=42,
     n_jobs=-1
 )

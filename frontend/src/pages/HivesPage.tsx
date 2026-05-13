@@ -12,12 +12,7 @@ import QRCodeCard from '../components/common/QRCodeCard';
 import { 
   OperationalSkeleton, OperationalEmptyState 
 } from '../components/states/OperationalUI';
-
-const isOverdue = (date?: string) => {
-  if (!date) return true;
-  const diff = (new Date().getTime() - new Date(date).getTime()) / (1000 * 3600 * 24);
-  return diff > 14;
-};
+import { isOverdue } from '../utils/isOverdue';
 
 export const HivesPage = () => {
   const { user } = useAuth();
@@ -65,14 +60,11 @@ export const HivesPage = () => {
   return (
     <div className="page-enter">
       {/* Operational Header */}
-      <div className="flex items-center justify-between mb-10">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="page-title">My Hives</h1>
-          <p className="page-subtitle">Monitoring {hives.length} active apiary units</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My Hives</h1>
+          <p className="text-sm font-medium text-slate-500 mt-1">Monitoring {hives.length} active apiary units</p>
         </div>
-        <button onClick={() => setIsAddOpen(true)} className="w-14 h-14 shrink-0 flex items-center justify-center bg-[#9b0a00] text-white rounded-[20px] shadow-lg shadow-rose-900/10 active:scale-95 transition-all">
-          <Plus size={28} />
-        </button>
       </div>
 
       {hives.length > 0 && (
@@ -114,15 +106,19 @@ export const HivesPage = () => {
         {hives === undefined ? (
           <OperationalSkeleton rows={4} type="card" />
         ) : hives.length === 0 ? (
-          <div className="bg-white rounded-[24px] border border-dashed border-slate-200 p-12 text-center mt-4">
-             <p className="text-[16px] text-slate-800 font-medium leading-relaxed">
-               No hives added yet. Add your first<br />hive to begin.
+          <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center mt-4 shadow-sm flex flex-col items-center">
+             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+               <Hexagon size={28} className="text-slate-400" strokeWidth={2} />
+             </div>
+             <p className="text-base text-slate-800 font-semibold mb-2">No Hives Yet</p>
+             <p className="text-sm text-slate-500 max-w-[200px] leading-relaxed">
+               Add your first hive to start tracking health and production.
              </p>
           </div>
         ) : processedHives.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#94A3B8' }}>
-            <Filter size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
-            <p style={{ fontSize: 13, fontWeight: 600 }}>No hives match '{filter}' filter</p>
+          <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+            <Filter size={24} className="opacity-30 mb-2" />
+            <p className="text-sm font-semibold text-slate-500">No hives match '{filter}' filter</p>
           </div>
         ) : (
           processedHives.map(h => (
@@ -140,13 +136,21 @@ export const HivesPage = () => {
 
       {/* Trace Modal Placeholder */}
       {selectedBatchId && (
-        <div onClick={() => setSelectedBatchId(null)} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 360 }}>
+        <div onClick={() => setSelectedBatchId(null)} className="fixed inset-0 z-[5000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-5">
+          <div onClick={e => e.stopPropagation()} className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl">
             <QRCodeCard batchId={selectedBatchId} />
-            <button onClick={() => setSelectedBatchId(null)} className="btn btn-secondary btn-full" style={{ marginTop: 20, borderRadius: 12 }}>Close</button>
+            <button onClick={() => setSelectedBatchId(null)} className="w-full bg-slate-100 text-slate-700 py-3.5 rounded-xl font-semibold text-sm mt-5 active:scale-[0.98] transition-transform">Close</button>
           </div>
         </div>
       )}
+
+      {/* Fixed FAB for mobile reachability */}
+      <button 
+        onClick={() => setIsAddOpen(true)} 
+        className="fixed bottom-[5.5rem] right-5 w-14 h-14 bg-[#5D0623] text-white rounded-full shadow-lg shadow-rose-900/20 flex items-center justify-center active:scale-95 transition-transform z-50"
+      >
+        <Plus size={24} strokeWidth={2.5} />
+      </button>
 
       {/* Sheets */}
       <AddHiveSheet

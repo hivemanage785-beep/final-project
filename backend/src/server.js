@@ -17,6 +17,7 @@ import ndviRouter from './api/v1/ndvi.routes.js';
 import hivesRouter from './api/v1/hive.routes.js';
 import farmersRouter from './api/v1/farmer.routes.js';
 import harvestsRouter from './api/v1/harvest.routes.js';
+import publicTraceRouter from './api/v1/publicTrace.routes.js'; // Public-only trace endpoints
 import syncRouter from './api/v1/sync.routes.js';
 import requestsRouter from './api/v1/request.routes.js';
 import inspectionsRouter from './api/v1/inspection.routes.js';
@@ -59,7 +60,7 @@ app.use('/api/docs', swaggerUiServe, swaggerUiSetup);
 
 app.use(helmet());
 app.use(cors({
-  origin: "https://buzz-off-bee.vercel.app",
+  origin: ["https://buzz-off-bee.vercel.app", "http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"]
@@ -90,7 +91,10 @@ app.use('/api/simulate', simulateRouter);
 app.use('/api/trace-score', traceRouter);
 app.use('/api', auth, feedbackUXRouter);
 app.use('/api/feedback', auth, feedbackRouter);
-app.use('/api/batches', harvestsRouter);
+// Public harvest trace endpoints only (no auth) — QR scan consumers
+// SECURITY: Only /trace/hive/:id, /trace/:id, /:id are accessible here.
+// Protected harvest management (create/list/verify) remains under /api/harvests below.
+app.use('/api/batches', publicTraceRouter);
 
 // Tile precompute status (public diagnostic)
 app.get('/api/tiles/status', async (req, res) => {

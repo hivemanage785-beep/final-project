@@ -3,7 +3,8 @@ import { useAuth } from '../hooks/useAuth';
 import { db, Harvest, Hive } from '../lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useSync } from '../hooks/useSync';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCode } from '../components/common/QRCode';
+import { getTraceUrl } from '../utils/getTraceUrl';
 import { 
   QrCode, Plus, Search, Archive, ChevronRight, X, ScanLine, 
   Lock, ShieldCheck, Clock, ShieldX, MapPin, Zap, Info, 
@@ -71,20 +72,36 @@ export const QRTrace: React.FC = () => {
   const [newHarvest, setNewHarvest] = useState({ hive_id: '', flora: 'Wildflower' });
 
   // Load Trace Data if batchId is in URL
+  // CRITICAL: Use plain fetch() here — NOT apiGet() — because this is a PUBLIC endpoint
+  // that requires NO authentication. apiGet injects the Firebase token which causes the
+  // auth middleware to reject partially-initialized tokens with a 401.
   React.useEffect(() => {
-    if (batchId) {
-      setTraceLoading(true);
-      // Polymorphic routing: Batch IDs start with HT-, Hive IDs are UUIDs/String IDs
-      const isHiveId = !batchId.startsWith('HT-');
-      const endpoint = isHiveId 
-        ? `/api/batches/trace/hive/${batchId}` 
-        : `/api/batches/trace/${batchId}`;
+    if (!batchId) return;
+    setTraceLoading(true);
 
-      apiGet(endpoint)
-        .then(res => setTraceData(res.data || res))
-        .catch(err => setTraceError(err.message || 'Verification Failed'))
-        .finally(() => setTraceLoading(false));
-    }
+    const isHiveId = !batchId.startsWith('HT-');
+    const endpoint = isHiveId
+      ? `/api/batches/trace/hive/${batchId}`
+      : `/api/batches/trace/${batchId}`;
+
+    const baseUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || '';
+    const fullUrl = `${baseUrl}${endpoint}`;
+
+    console.log(`[QRTrace] Scanned Batch ID: ${batchId}`);
+    console.log(`[QRTrace] Fetching from endpoint: ${fullUrl}`);
+
+    fetch(fullUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+      .then(async res => {
+        if (!res.ok) throw new Error(`Request failed with status code ${res.status}`);
+        const json = await res.json();
+        console.log('[QRTrace] Received API Response:', json);
+        setTraceData(json.data || json);
+      })
+      .catch(err => {
+        console.error('[QRTrace] Fetch Error:', err);
+        setTraceError(err.message || 'Verification Failed');
+      })
+      .finally(() => setTraceLoading(false));
   }, [batchId]);
 
   const handleCreateHarvest = async () => {
@@ -108,125 +125,223 @@ export const QRTrace: React.FC = () => {
     setIsAdding(false);
   };
 
-  const getTraceUrl = (batch: Harvest) => {
-    const base = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
-    return `${base}/trace/${(batch as any).publicId || batch.batch_id}`;
+  const getTraceUrlLocal = (batch: Harvest) => {
+    return getTraceUrl((batch as any).publicId || batch.batch_id);
   };
 
   /* ── VIEW A: CONSUMER TRACEABILITY REPORT ── */
   if (batchId) {
     if (traceLoading) return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-white">
-        <RefreshCw className="animate-spin text-slate-300 mb-4" size={40} />
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Retrieving Batch Records...</p>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: '100dvh', background: '#FDFCFB', gap: 16,
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: '50%',
+          border: '3px solid #f1e8e8', borderTopColor: '#5D0623',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          Retrieving Batch Records
+        </p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
-    
+
     if (traceError || !traceData) return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-white">
-        <ShieldX size={64} className="text-rose-100 mb-6" />
-        <h2 className="text-xl font-black text-slate-800 mb-2">Traceability Failed</h2>
-        <p className="text-sm text-slate-500 mb-8 max-w-xs">{traceError || 'The requested batch ID does not exist in our secure ledger.'}</p>
-        <Link to="/" className="btn btn-primary px-8 rounded-2xl">Return to Field</Link>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: '100dvh', background: '#FDFCFB',
+        padding: '32px 24px', textAlign: 'center',
+      }}>
+        <div style={{
+          width: 72, height: 72, borderRadius: '50%', background: '#FEF2F2',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+          border: '1px solid #fecaca',
+        }}>
+          <ShieldX size={32} color="#dc2626" />
+        </div>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 8, letterSpacing: '-0.02em' }}>
+          Traceability Failed
+        </h2>
+        <p style={{ fontSize: 13, color: '#64748b', maxWidth: 280, lineHeight: 1.6, marginBottom: 32 }}>
+          {traceError || 'The requested batch ID does not exist in our secure ledger.'}
+        </p>
+        <Link to="/" style={{
+          background: '#5D0623', color: '#fff', padding: '12px 32px',
+          borderRadius: 14, fontWeight: 700, fontSize: 14, textDecoration: 'none',
+        }}>
+          Return to Dashboard
+        </Link>
       </div>
     );
+
+    const isHive = !!(traceData as any).is_hive;
+    const statusCfg = getStatusConfig(traceData.verification_status || (traceData as any).health_status);
+    const StatusIcon = statusCfg.icon;
 
     return (
-      <div className="flex-1 bg-[#FDFCFB] min-h-screen pb-20">
-        {/* Certificate Header */}
-        <div className="bg-white px-6 py-10 text-center border-b border-slate-100 shadow-sm relative overflow-hidden">
-           <div style={{ position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: '50%', background: 'rgba(21, 128, 61, 0.03)' }} />
-           <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-50 rounded-full mb-4 border border-emerald-100">
-             <ShieldCheck size={32} className="text-emerald-600" />
-           </div>
-           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Batch Traceability Report</h1>
-           <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Recorded & Approved via HiveOps Management</p>
-           <div className="mt-6">
-             <VerificationBadge status={traceData.verification_status} />
-           </div>
+      <div style={{ background: '#FDFCFB', minHeight: '100dvh', paddingBottom: 40, fontFamily: "'Inter', system-ui, sans-serif" }}>
+
+        {/* ── Brand Header ── */}
+        <div style={{
+          background: '#5D0623', padding: '24px 20px 28px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {/* decorative circles */}
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+          <div style={{ position: 'absolute', bottom: -24, left: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
+          {/* Logo row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <ShieldCheck size={16} color="rgba(255,255,255,0.9)" />
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>HiveOps</span>
+          </div>
+          <h1 style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', margin: 0 }}>
+            Traceability Report
+          </h1>
+          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
+            {isHive ? 'Hive Provenance Record' : 'Batch Provenance Record'}
+          </p>
+          {/* Verification badge */}
+          <div style={{
+            marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 14px', borderRadius: 100,
+            background: 'rgba(255,255,255,0.10)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}>
+            <StatusIcon size={12} color={statusCfg.color} />
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', color: '#fff' }}>
+              {statusCfg.label}
+            </span>
+          </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Section 1: Provenance Origins */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <MapPin size={16} className="text-[#5D0623]" />
-              <h3 className="font-black text-xs text-slate-800 uppercase tracking-widest">
-                {(traceData as any).is_hive ? 'Hive Heritage' : 'Verified Origin'}
-              </h3>
+        <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+          {/* ── Provenance Card ── */}
+          <div style={{
+            background: '#fff', borderRadius: 20, border: '1px solid #f1f5f9',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.05)', overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '14px 16px 12px', borderBottom: '1px solid #f8fafc',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <MapPin size={14} color="#5D0623" />
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {isHive ? 'Hive Details' : 'Batch Origin'}
+              </span>
             </div>
-            <div className="grid grid-cols-2 gap-y-4">
-              {(traceData as any).is_hive ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+              {isHive ? (
                 <>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Hive ID</p>
-                    <p className="text-sm font-bold text-slate-800">{(traceData as any).hive_id}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Current Zone</p>
-                    <p className="text-sm font-bold text-slate-800">{(traceData as any).placement_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Health Status</p>
-                    <p className="text-sm font-bold text-slate-800 uppercase text-emerald-600">{(traceData as any).health_status}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Operational State</p>
-                    <p className="text-sm font-bold text-slate-800">{(traceData as any).box_count} Active Boxes</p>
-                  </div>
+                  {[
+                    { label: 'Hive ID', value: (traceData as any).hive_id },
+                    { label: 'Placement Zone', value: (traceData as any).placement_name || 'Field' },
+                    { label: 'Health Status', value: ((traceData as any).health_status || 'Unknown').toUpperCase(), highlight: true },
+                    { label: 'Active Boxes', value: `${(traceData as any).box_count || '—'} Units` },
+                  ].map((row, i) => (
+                    <div key={i} style={{
+                      padding: '14px 16px',
+                      borderBottom: i < 2 ? '1px solid #f8fafc' : 'none',
+                      borderRight: i % 2 === 0 ? '1px solid #f8fafc' : 'none',
+                    }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 4px' }}>{row.label}</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: row.highlight ? '#15803d' : '#0f172a', margin: 0 }}>{row.value || '—'}</p>
+                    </div>
+                  ))}
                 </>
               ) : (
                 <>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Beekeeper</p>
-                    <p className="text-sm font-bold text-slate-800">{traceData.beekeeper_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Flora Type</p>
-                    <p className="text-sm font-bold text-slate-800">{traceData.flora}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Region</p>
-                    <p className="text-sm font-bold text-slate-800">Tamil Nadu, IN</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Harvest Date</p>
-                    <p className="text-sm font-bold text-slate-800">{new Date(traceData.harvest_date).toLocaleDateString()}</p>
-                  </div>
+                  {[
+                    { label: 'Beekeeper', value: traceData.beekeeper_name || 'Unavailable' },
+                    { label: 'Flora Type', value: traceData.flora || 'Unspecified' },
+                    { label: 'Harvest Date', value: traceData.harvest_date ? new Date(traceData.harvest_date).toLocaleDateString() : '—' },
+                    { label: 'Region', value: traceData.location?.lat_approx ? `${traceData.location.lat_approx}N` : 'Available on verify' },
+                  ].map((row, i) => (
+                    <div key={i} style={{
+                      padding: '14px 16px',
+                      borderBottom: i < 2 ? '1px solid #f8fafc' : 'none',
+                      borderRight: i % 2 === 0 ? '1px solid #f8fafc' : 'none',
+                    }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 4px' }}>{row.label}</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: 0 }}>{row.value}</p>
+                    </div>
+                  ))}
                 </>
               )}
             </div>
           </div>
 
-          {/* Section 2: Environmental Snapshot */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <Zap size={16} className="text-yellow-600" />
-              <h3 className="font-black text-xs text-slate-800 uppercase tracking-widest">Environmental Snapshot</h3>
+          {/* ── Verification Card ── */}
+          <div style={{
+            background: '#fff', borderRadius: 20, border: '1px solid #f1f5f9',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+          }}>
+            <div style={{
+              padding: '14px 16px 12px', borderBottom: '1px solid #f8fafc',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <ShieldCheck size={14} color="#64748b" />
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Verification</span>
             </div>
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-               <div className="flex items-start gap-3">
-                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-100 shrink-0">
-                   <CheckCircle2 size={20} className="text-emerald-500" />
-                 </div>
-                 <div>
-                   <p className="text-xs font-bold text-slate-800">Sustainable Foraging Zone</p>
-                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                     Harvested from coordinates ({traceData.location.lat_approx}N, {traceData.location.lng_approx}E) identified as a high-potential biodiversity zone.
-                   </p>
-                 </div>
-               </div>
+            <div style={{ padding: '16px' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', borderRadius: 14,
+                background: statusCfg.bg, border: `1px solid ${statusCfg.color}22`,
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10, background: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: `1px solid ${statusCfg.color}33`, flexShrink: 0,
+                }}>
+                  <StatusIcon size={18} color={statusCfg.color} />
+                </div>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: statusCfg.color, margin: '0 0 2px' }}>{statusCfg.label}</p>
+                  <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+                    {traceData.is_locked
+                      ? 'Record is cryptographically locked and cannot be altered.'
+                      : 'Record is active and pending finalization.'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Verification Ledger */}
-          <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-slate-100 text-center">
-            <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
-              Ledger ID: {traceData.publicId}<br/>
-              Verified at: {traceData.verified_at || (traceData as any).last_inspection ? new Date(traceData.verified_at || (traceData as any).last_inspection).toLocaleString() : 'System Automated Approval'}<br/>
-              Operational data record linked to field inspection logs.
-            </p>
+          {/* ── Ledger Footer ── */}
+          <div style={{
+            background: '#fff', borderRadius: 20, border: '1px solid #f1f5f9',
+            padding: '16px', display: 'flex', flexDirection: 'column', gap: 8,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Zap size={14} color="#94a3b8" />
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Ledger Record</span>
+            </div>
+            {[
+              { label: 'Ledger ID', value: traceData.publicId || batchId || 'N/A' },
+              { label: 'Certification', value: traceData.certification_id || 'Pending' },
+              { label: 'Verified At', value: traceData.verified_at ? new Date(traceData.verified_at).toLocaleString() : 'Pending Verification' },
+            ].map((row, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: i === 0 ? 'none' : '1px solid #f8fafc' }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{row.label}</span>
+                <span style={{ fontSize: 11, color: '#0f172a', fontWeight: 700, fontFamily: 'monospace', maxWidth: '60%', textAlign: 'right', wordBreak: 'break-all' }}>{row.value}</span>
+              </div>
+            ))}
           </div>
+
+          {/* ── Powered by footer ── */}
+          <p style={{ textAlign: 'center', fontSize: 10, color: '#cbd5e1', fontWeight: 500, marginTop: 4 }}>
+            Secured by HiveOps Traceability Engine
+          </p>
         </div>
       </div>
     );
@@ -362,10 +477,13 @@ export const QRTrace: React.FC = () => {
       <BottomSheet isOpen={selectedBatch !== null} onClose={() => setSelectedBatch(null)} title="Consumer Preview">
          {selectedBatch && (
            <div className="flex flex-col items-center pb-8 pt-2">
-              <div className="bg-white p-6 rounded-[32px] shadow-xl border border-slate-100 mb-6">
-                 <QRCodeSVG value={getTraceUrl(selectedBatch)} size={220} level="H" includeMargin={false} />
+              <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-6 inline-block">
+                 <QRCode value={getTraceUrlLocal(selectedBatch)} size={220} />
+                 <p className="mt-4 text-[10px] font-mono text-slate-400 select-all break-all max-w-[220px] text-center">
+                   {getTraceUrlLocal(selectedBatch)}
+                 </p>
               </div>
-              <p className="text-[10px] text-slate-300 font-mono mb-8 uppercase tracking-widest">Public ID: {(selectedBatch as any).publicId || selectedBatch.batch_id}</p>
+              <p className="text-[10px] text-slate-400 font-mono mb-8 uppercase tracking-widest">Public ID: {(selectedBatch as any).publicId || selectedBatch.batch_id}</p>
               
               <div className="w-full bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-5">
                  <div className="flex justify-between items-center">

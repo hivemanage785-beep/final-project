@@ -33,11 +33,13 @@ export const Layout = ({ user }: { user: any }) => {
 
   return (
     <div className="app-shell">
-      <GlobalOperationalStatus 
-        isOnline={isOnline} 
-        isSyncing={isSyncing} 
-        pendingCount={pendingCount} 
-      />
+      {user && (
+        <GlobalOperationalStatus 
+          isOnline={isOnline} 
+          isSyncing={isSyncing} 
+          pendingCount={pendingCount} 
+        />
+      )}
       <main className="main-content">
         <Routes>
           <Route path="/"       element={<Navigate to="/today" replace />} />
@@ -56,24 +58,26 @@ export const Layout = ({ user }: { user: any }) => {
         </Routes>
       </main>
 
-      <nav className="bottom-nav">
-        {NAV.map(({ to, Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          >
-            {({ isActive }) => (
-              <>
-                <div className={`p-1.5 rounded-2xl transition-all duration-300 ${isActive ? 'bg-[#5D0623]/5 scale-110' : ''}`}>
-                  <Icon size={22} strokeWidth={isActive ? 2.8 : 2} />
+      {user && (
+        <nav className="bottom-nav">
+          {NAV.map(({ to, Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+            >
+              {({ isActive }) => (
+                <div className="flex flex-col items-center justify-center pt-1">
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 ${isActive ? 'bg-[#5D0623]/10 text-[#5D0623]' : 'text-slate-400 hover:text-slate-600'}`}>
+                    <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                  </div>
+                  <span className={`mt-1 text-[10px] font-bold tracking-wide transition-colors ${isActive ? 'text-[#5D0623]' : 'text-slate-400'}`}>{label}</span>
                 </div>
-                <span className="mt-0.5">{label}</span>
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+      )}
     </div>
   );
 };

@@ -1,66 +1,98 @@
 import React from 'react';
 import { Hexagon, Loader2 } from 'lucide-react';
 
-export const AuthScreen: React.FC<{ 
-  onSignIn: () => void, 
-  loading?: boolean, 
-  error?: string | null 
-}> = ({ onSignIn, loading, error }) => (
-  <div className="auth-screen">
-    <div className="auth-card">
-      <div style={{
-        width: 64, height: 64, borderRadius: 18,
-        background: '#8B0000', display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
-        margin: '0 auto 20px'
-      }}>
-        <Hexagon size={32} color="#fff" fill="#fff" />
-      </div>
+/**
+ * AuthScreen Component
+ * 
+ * Displays the login screen with Google Sign-In functionality.
+ * This is the entry point for unauthenticated users.
+ * 
+ * Props:
+ * - onSignIn: Callback function triggered when user clicks sign-in button
+ * - loading: Boolean indicating if authentication is in progress
+ * - error: Error message to display to user, if any
+ */
+interface AuthScreenProps {
+  onSignIn: () => void;
+  loading?: boolean;
+  error?: string | null;
+}
 
-      <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.5px', marginBottom: 8 }}>
-        HiveOps
-      </h1>
-      <p style={{ fontSize: 14, color: '#888', marginBottom: 32, lineHeight: 1.5 }}>
-        Precision beekeeping intelligence<br />for Tamil Nadu apiaries.
-      </p>
-
-      {error && (
-        <div style={{ 
-          background: '#FEF2F2', border: '1px solid #FECACA', 
-          borderRadius: 12, padding: '10px 14px', marginBottom: 20,
-          fontSize: 11, color: '#B91C1C', textAlign: 'left', fontWeight: 800,
-          textTransform: 'uppercase', letterSpacing: '0.02em'
-        }}>
-          {error}
+export const AuthScreen: React.FC<AuthScreenProps> = ({
+  onSignIn,
+  loading = false,
+  error = null,
+}) => {
+  return (
+    <div className="auth-screen">
+      <div className="auth-card">
+        {/* Logo Container */}
+        <div className="auth-logo">
+          <Hexagon size={32} color="#fff" fill="#fff" />
         </div>
-      )}
 
-      <button
-        onClick={onSignIn}
-        disabled={loading}
-        style={{
-          width: '100%', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', gap: 10,
-          background: '#fff', border: '1.5px solid #E0DDD8',
-          borderRadius: 12, padding: '13px 20px',
-          fontSize: 14, fontWeight: 700, color: '#222',
-          cursor: loading ? 'not-allowed' : 'pointer', 
-          transition: 'all 0.2s',
-          opacity: loading ? 0.6 : 1,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-        }}
-      >
-        {loading ? (
-          <Loader2 size={18} className="animate-spin text-slate-400" />
-        ) : (
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" style={{ width: 18, height: 18 }} />
-        )}
-        <span style={{ marginTop: 1 }}>{loading ? 'Authenticating...' : 'Continue with Google'}</span>
-      </button>
+        {/* Branding */}
+        <h1 className="auth-title">HiveOps</h1>
+        <p className="auth-subtitle">
+          Precision beekeeping intelligence
+          <br />
+          for Tamil Nadu apiaries.
+        </p>
 
-      <p style={{ fontSize: 11, color: '#bbb', marginTop: 24 }}>
-        By signing in you agree to our Terms of Service
-      </p>
+        {/* Error Message (Conditional) */}
+        {error && <ErrorAlert message={error} />}
+
+        {/* Sign-In Button */}
+        <SignInButton onClick={onSignIn} isLoading={loading} />
+
+        {/* Terms of Service */}
+        <p className="auth-terms">
+          By signing in you agree to our Terms of Service
+        </p>
+      </div>
     </div>
+  );
+};
+
+/**
+ * ErrorAlert Component
+ * Displays authentication errors in a prominent alert box.
+ */
+interface ErrorAlertProps {
+  message: string;
+}
+
+const ErrorAlert: React.FC<ErrorAlertProps> = ({ message }) => (
+  <div className="auth-error-alert" role="alert">
+    {message}
   </div>
+);
+
+/**
+ * SignInButton Component
+ * Google Sign-In button with loading state handling.
+ */
+interface SignInButtonProps {
+  onClick: () => void;
+  isLoading: boolean;
+}
+
+const SignInButton: React.FC<SignInButtonProps> = ({ onClick, isLoading }) => (
+  <button
+    onClick={onClick}
+    disabled={isLoading}
+    className="auth-signin-btn"
+    aria-label={isLoading ? 'Authenticating' : 'Sign in with Google'}
+  >
+    {isLoading ? (
+      <Loader2 size={18} className="auth-signin-loader" aria-hidden="true" />
+    ) : (
+      <img
+        src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+        alt=""
+        className="auth-signin-icon"
+      />
+    )}
+    <span>{isLoading ? 'Authenticating...' : 'Continue with Google'}</span>
+  </button>
 );

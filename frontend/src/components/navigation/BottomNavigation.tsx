@@ -18,7 +18,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, o
   ] as const;
 
   return (
-    <nav className="flex-shrink-0 w-full bg-white border-t border-gray-200 pb-safe z-[4000] px-2 h-16 flex items-center justify-around shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+    <nav className="flex-shrink-0 w-full bg-white/80 backdrop-blur-md border-t border-gray-100 pb-safe z-[4000] px-6 h-[4.25rem] flex items-center justify-between">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -26,14 +26,14 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, o
           <button
             key={tab.id}
             onClick={() => onChangeTab(tab.id as TabType)}
-            className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
+            className={`group flex flex-col items-center justify-center w-14 h-full transition-all duration-200 ease-out ${
               isActive ? 'text-[#5D0623]' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            <div className={`p-1 rounded-xl ${isActive ? 'bg-[#5D0623]/10' : ''}`}>
-              <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+            <div className={`relative flex items-center justify-center p-1.5 rounded-full transition-all duration-300 ${isActive ? 'bg-[#5D0623]/10 scale-110' : 'bg-transparent scale-100'}`}>
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 2} className="transition-transform duration-200" />
             </div>
-            <span className={`text-[10px] mt-0.5 font-medium ${isActive ? 'text-[#5D0623]' : 'text-gray-500'}`}>
+            <span className={`text-[10px] mt-1 font-medium tracking-wide transition-all duration-200 ${isActive ? 'text-[#5D0623] opacity-100' : 'text-gray-500 opacity-80 group-hover:opacity-100'}`}>
               {tab.label}
             </span>
           </button>

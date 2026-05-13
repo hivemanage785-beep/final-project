@@ -13,30 +13,25 @@ import { AddHiveSheet } from '../modules/hives/AddHiveSheet';
 import {
   OperationalSkeleton, OperationalLoading, OperationalEmptyState, OperationalError
 } from '../components/states/OperationalUI';
+import { isOverdue } from '../utils/isOverdue';
 
 /* ── Helpers ── */
 const initials = (name?: string) =>
   name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'BK';
 
-const isOverdue = (date?: string) => {
-  if (!date) return false;
-  const diff = (new Date().getTime() - new Date(date).getTime()) / (1000 * 3600 * 24);
-  return diff > 14;
-};
-
 /* ── Sub-components ── */
 const StatusHeader = ({ photoURL, displayName, isOnline }: any) => (
-  <div className="flex items-center justify-between mb-10 pt-2 px-1">
+  <div className="flex items-start justify-between mb-6 pt-2 px-1">
     <div>
-      <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Today</h1>
-      <div className="flex items-center gap-2 mt-1.5">
+      <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Today</h1>
+      <div className="flex items-center gap-1.5 mt-1.5">
         <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+        <span className="text-[11px] font-medium text-slate-500 tracking-wide uppercase">
           {isOnline ? 'Cloud connected' : 'Offline Mode'}
         </span>
       </div>
     </div>
-    <div className="w-12 h-12 shrink-0 rounded-[18px] bg-[#990a00] flex items-center justify-center text-white font-bold text-sm shadow-sm overflow-hidden border-2 border-white">
+    <div className="w-9 h-9 shrink-0 rounded-full bg-[#5D0623] flex items-center justify-center text-white font-semibold text-xs shadow-sm overflow-hidden border border-slate-200 mt-0.5">
       {photoURL ? (
         <img
           src={photoURL}
@@ -55,55 +50,96 @@ const PriorityBanner = ({ alert }: { alert: Alert | null }) => {
   if (!alert || alert.type !== 'critical') return null;
 
   return (
-    <div className="mb-10 px-0.5">
+    <div className="mb-6">
       <Link
         to="/hives"
-        className="flex items-center gap-3 bg-rose-50/50 border border-rose-100/50 rounded-[20px] p-3.5 shadow-sm active:scale-[0.98] transition-transform"
+        className="flex items-center gap-3 bg-rose-50/50 border border-rose-100 rounded-2xl py-2.5 px-3 shadow-sm active:scale-[0.98] transition-transform"
       >
-        <div className="shrink-0 w-7 h-7 bg-white rounded-lg flex items-center justify-center text-rose-500 border border-rose-100/50">
-          <AlertCircle size={15} strokeWidth={2.5} />
+        <div className="shrink-0 w-6 h-6 bg-white rounded-lg flex items-center justify-center text-rose-500 border border-rose-100/50">
+          <AlertCircle size={14} strokeWidth={2.5} />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-bold text-rose-900/80 truncate">
-            {alert.title.split(' - ')[0]} — <span className="font-semibold text-rose-700/70">{alert.title.split(' - ')[1] || alert.desc}</span>
+        <div className="flex-1 min-w-0 flex items-center">
+          <p className="text-xs text-rose-900/80 truncate">
+            <span className="font-bold">{alert.title.split(' - ')[0]}</span> — <span className="font-medium text-rose-700/80">{alert.title.split(' - ')[1] || alert.desc}</span>
           </p>
         </div>
-        <ChevronRight size={14} className="text-rose-200" />
+        <ChevronRight size={14} className="text-rose-300 shrink-0" />
       </Link>
     </div>
   );
 };
 
-const KPIContainer = ({ stats, loading }: any) => (
-  <div className="grid grid-cols-2 gap-5 mb-12">
-    <div className="bg-[#9b0a00] p-10 rounded-[28px] shadow-sm text-white flex flex-col min-h-[140px] relative overflow-hidden">
-      <div className="absolute right-[-10%] top-[-10%] opacity-10">
-        <Hexagon size={80} fill="white" />
+const KPICard = ({
+  bg, border, icon, metric, label, metricColor, decorative, dark = false
+}: {
+  bg: string; border: string; icon: React.ReactNode;
+  metric: React.ReactNode; label: string;
+  metricColor: string; decorative?: React.ReactNode;
+  dark?: boolean;
+}) => (
+  <div
+    className="relative w-full h-[148px] rounded-[24px] shadow-sm p-6 overflow-hidden"
+    style={{ backgroundColor: bg, border: border || 'none' }}
+  >
+    {/* LOCK: Decorative Background */}
+    {decorative && (
+      <div className="absolute -right-3 -top-3 opacity-[0.08] pointer-events-none z-0">
+        {decorative}
       </div>
-      <div className="w-10 h-10 bg-white/10 rounded-[14px] flex items-center justify-center border border-white/5 mb-auto">
-        <Hexagon size={20} className="text-white/90" strokeWidth={2} />
-      </div>
-      <div className="mt-4">
-        <div className="text-[clamp(28px,6vw,42px)] font-black tracking-tight leading-none mb-1">
-          {loading ? '..' : stats.totalHives}
-        </div>
-        <div className="text-[10px] font-black text-white/60 uppercase tracking-[0.1em]">Total Hives</div>
+    )}
+
+    {/* 1. HEADER REGION — Fixed structural height for Icon */}
+    <div className="h-9 flex items-center relative z-10 mb-1">
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${dark ? 'bg-white/10 border border-white/10' : 'bg-rose-50'}`}>
+        {icon}
       </div>
     </div>
-    
-    <div className="bg-white p-10 rounded-[28px] shadow-sm border border-slate-100 flex flex-col min-h-[140px]">
-      <div className="w-10 h-10 bg-slate-50 rounded-[14px] flex items-center justify-center border border-slate-50 mb-auto">
-        <Clock size={20} className="text-[#9b0a00]" strokeWidth={2} />
+
+    {/* 2. METRIC REGION — Isolated fixed-height region for the number with STABLE LEFT PADDING */}
+    <div className="h-[60px] flex items-center relative z-10">
+      <div 
+        className="text-[34px] font-black leading-none tracking-tighter"
+        style={{ color: metricColor }}
+      >
+        {metric}
       </div>
-      <div className="mt-4">
-        <div className={`text-[clamp(28px,6vw,42px)] font-black tracking-tight leading-none mb-1 ${stats.overdue > 0 ? 'text-[#9b0a00]' : 'text-slate-900'}`}>
-          {loading ? '..' : stats.overdue}
-        </div>
-        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">Due Checks</div>
+    </div>
+
+    {/* 3. LABEL REGION — Dedicated bottom region for label with STABLE LEFT PADDING */}
+    <div className="absolute bottom-6 left-6 right-6 h-4 flex items-center relative z-10">
+      <div 
+        className={`text-[10px] font-black uppercase tracking-[0.1em] ${dark ? 'text-white/60' : 'text-slate-400'}`}
+        style={{ color: dark ? undefined : metricColor }}
+      >
+        {label}
       </div>
     </div>
   </div>
 );
+
+const KPIContainer = ({ stats, loading }: any) => (
+  <div className="grid grid-cols-2 gap-3 mb-6">
+    <KPICard
+      bg="#5D0623"
+      border="none"
+      metricColor="#ffffff"
+      dark
+      icon={<Hexagon size={16} color="white" strokeWidth={2.5} />}
+      decorative={<Hexagon size={80} fill="white" />}
+      metric={loading ? '..' : stats.totalHives}
+      label="Total Hives"
+    />
+    <KPICard
+      bg="#ffffff"
+      border="1px solid #f1f5f9"
+      metricColor={stats.overdue > 0 ? '#5D0623' : '#0f172a'}
+      icon={<Clock size={16} color="#5D0623" strokeWidth={2.5} />}
+      metric={loading ? '..' : stats.overdue}
+      label="Due Checks"
+    />
+  </div>
+);
+
 
 const HealthOverview = ({ hives, loading }: any) => {
   const healthy = hives.filter((h: any) => h.health_status === 'good').length;
@@ -111,38 +147,40 @@ const HealthOverview = ({ hives, loading }: any) => {
   const critical = hives.filter((h: any) => h.health_status === 'poor').length;
 
   return (
-    <div className="mb-12">
-      <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-5 px-2">Health Overview</h3>
-      <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden">
+    <div className="mb-6">
+      {/* FIX #6: Single authoritative section label style */}
+      <h3 className="section-label mb-2 px-1">Health Overview</h3>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
-        <div className="flex items-center justify-between p-6 border-b border-slate-50">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-              <CheckCircle2 size={18} className="text-emerald-500" strokeWidth={2.5} />
+        {/* FIX #2/#5: gap-based row spacing, normalized icon size to w-8 h-8 */}
+        <div className="flex items-center justify-between py-3 px-4 border-b border-slate-50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+              <CheckCircle2 size={15} className="text-emerald-500" strokeWidth={2} />
             </div>
-            <span className="text-[14px] font-bold text-slate-700">Healthy & Thriving</span>
+            <span className="text-sm font-medium text-slate-700">Healthy & Thriving</span>
           </div>
-          <span className="text-[17px] font-black text-slate-900 pr-2">{loading ? '..' : healthy}</span>
+          <span className="text-sm font-bold text-slate-900 tabular-nums">{loading ? '..' : healthy}</span>
         </div>
 
-        <div className="flex items-center justify-between p-6 border-b border-slate-50">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
-              <AlertTriangle size={18} className="text-amber-500" strokeWidth={2.5} />
+        <div className="flex items-center justify-between py-3 px-4 border-b border-slate-50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+              <AlertTriangle size={15} className="text-amber-500" strokeWidth={2} />
             </div>
-            <span className="text-[14px] font-bold text-slate-700">Needs Attention</span>
+            <span className="text-sm font-medium text-slate-700">Needs Attention</span>
           </div>
-          <span className="text-[17px] font-black text-slate-900 pr-2">{loading ? '..' : needsAttention}</span>
+          <span className="text-sm font-bold text-slate-900 tabular-nums">{loading ? '..' : needsAttention}</span>
         </div>
 
-        <div className="flex items-center justify-between p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-              <AlertCircle size={18} className="text-rose-500" strokeWidth={2.5} />
+        <div className="flex items-center justify-between py-3 px-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+              <AlertCircle size={15} className="text-rose-500" strokeWidth={2} />
             </div>
-            <span className="text-[14px] font-bold text-slate-700">Critical Status</span>
+            <span className="text-sm font-medium text-slate-700">Critical Status</span>
           </div>
-          <span className="text-[17px] font-black text-[#9b0a00] pr-2">{loading ? '..' : critical}</span>
+          <span className="text-sm font-bold text-[#5D0623] tabular-nums">{loading ? '..' : critical}</span>
         </div>
 
       </div>
@@ -197,7 +235,7 @@ export const TodayPage = ({ user }: any) => {
   if (isHivesLoading) return <OperationalLoading />;
 
   return (
-    <div className="page-enter bg-[#f8f9fa] min-h-[100dvh] pb-24 px-5 pt-4">
+    <div className="page-enter bg-[#f8f9fa]">
       <StatusHeader
         displayName={user?.displayName}
         photoURL={user?.photoURL}
@@ -207,17 +245,17 @@ export const TodayPage = ({ user }: any) => {
       <PriorityBanner alert={priorityAlert} />
 
       {hives.length === 0 ? (
-        <div className="bg-white rounded-[32px] border border-slate-100 p-10 shadow-sm text-center">
-          <div className="w-20 h-20 bg-rose-50 rounded-[28px] flex items-center justify-center mx-auto mb-8 border border-rose-100">
-            <Hexagon size={40} className="text-[#990a00]" strokeWidth={2.5} />
+        <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm text-center mt-4">
+          <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-100">
+            <Hexagon size={32} className="text-[#5D0623]" strokeWidth={2} />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-3">Welcome to HiveOps</h2>
-          <p className="text-[13px] font-medium text-slate-400 mb-10 leading-relaxed max-w-[240px] mx-auto">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-2">Welcome to HiveOps</h2>
+          <p className="text-sm text-slate-500 mb-8 max-w-[240px] mx-auto">
             Begin your precision beekeeping journey by registering your first apiary unit.
           </p>
           <button
             onClick={() => setIsAddOpen(true)}
-            className="w-full bg-[#5D0623] text-white py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.15em] shadow-lg shadow-rose-900/10 active:scale-95 transition-transform"
+            className="w-full bg-[#5D0623] text-white py-3.5 rounded-xl font-semibold text-sm shadow-sm hover:bg-[#4a051c] active:scale-[0.98] transition-all"
           >
             Register First Hive
           </button>
@@ -228,39 +266,40 @@ export const TodayPage = ({ user }: any) => {
 
           <HealthOverview hives={hives} loading={loading} />
 
-          {/* Spacious Recent Activity Feed */}
-          <div className="mb-10">
-            <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-5 px-2">Recent Activity</h3>
-            <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden">
+          {/* Recent Activity — FIX #2/#5/#6: gap spacing, normalized icons w-8 h-8, unified section label */}
+          <div className="mb-6">
+            <h3 className="section-label mb-2 px-1">Recent Activity</h3>
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               {loading ? (
-                <div className="p-6"><OperationalSkeleton rows={3} type="list" /></div>
+                <div className="p-4"><OperationalSkeleton rows={3} type="list" /></div>
               ) : filteredActivity.length === 0 ? (
-                <div className="p-10 text-center text-slate-300 text-[11px] font-semibold uppercase tracking-widest">System Idle</div>
+                <div className="p-6 text-center text-slate-400 text-xs font-medium">System Idle</div>
               ) : filteredActivity.map((alert: any, i) => (
                 <Link
                   key={alert.id || i}
                   to="/hives"
-                  className={`flex items-center justify-between p-5 active:bg-slate-50 transition-colors ${i !== filteredActivity.length - 1 ? 'border-b border-slate-50' : ''}`}
+                  className={`flex items-center gap-3 px-4 py-3 active:bg-slate-50 transition-colors ${i !== filteredActivity.length - 1 ? 'border-b border-slate-50' : ''}`}
                 >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${alert.type === 'critical' ? 'bg-rose-50 text-rose-500' :
-                      alert.type === 'warning' ? 'bg-amber-50 text-amber-500' :
-                        'bg-emerald-50 text-emerald-500'
-                      }`}>
-                      {alert.type === 'critical' ? <AlertCircle size={18} strokeWidth={2.5} /> :
-                        alert.type === 'warning' ? <AlertTriangle size={18} strokeWidth={2.5} /> :
-                          <CheckCircle2 size={18} strokeWidth={2.5} />}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[14px] font-bold text-slate-800 truncate leading-tight mb-1">
-                        {alert.title}
-                      </p>
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-                        {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recorded'}
-                      </p>
-                    </div>
+                  {/* FIX #5: normalized to w-8 h-8 matching health overview */}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                    alert.type === 'critical' ? 'bg-rose-50 text-rose-500' :
+                    alert.type === 'warning'  ? 'bg-amber-50 text-amber-500' :
+                                                'bg-emerald-50 text-emerald-500'
+                  }`}>
+                    {alert.type === 'critical' ? <AlertCircle size={15} strokeWidth={2} /> :
+                     alert.type === 'warning'  ? <AlertTriangle size={15} strokeWidth={2} /> :
+                                                 <CheckCircle2 size={15} strokeWidth={2} />}
                   </div>
-                  <ChevronRight size={16} className="text-slate-200 shrink-0" />
+                  {/* FIX #2: gap-based layout, no mb-* stacking inside text block */}
+                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-800 truncate leading-tight">
+                      {alert.title}
+                    </p>
+                    <p className="text-xs text-slate-400 leading-tight">
+                      {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recorded'}
+                    </p>
+                  </div>
+                  <ChevronRight size={14} className="text-slate-300 shrink-0" />
                 </Link>
               ))}
             </div>

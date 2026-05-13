@@ -181,17 +181,17 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
       )}
 
       {/* Search Bar */}
-      <div style={{ position: 'absolute', top: 16, left: 16, right: 16, zIndex: 1000 }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, background: 'white', padding: '8px 16px', borderRadius: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #E2E8F0' }}>
-          <Search size={18} color="#94A3B8" />
+      <div className="absolute top-4 left-4 right-4 z-[1000]">
+        <form onSubmit={handleSearch} className="flex gap-3 bg-white/90 backdrop-blur-md px-4 py-3 rounded-2xl shadow-sm border border-slate-200">
+          <Search size={20} className="text-slate-400 shrink-0" />
           <input
             type="text"
-            placeholder="Explore Tamil Nadu flora zones..."
+            placeholder="Search locations..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            style={{ border: 'none', outline: 'none', flex: 1, fontSize: 14, fontWeight: 500, color: '#1E293B' }}
+            className="border-none outline-none flex-1 text-sm font-medium text-slate-800 bg-transparent placeholder-slate-400"
           />
-          {searchLoading && <Loader2 size={16} className="animate-spin text-slate-400" />}
+          {searchLoading && <Loader2 size={18} className="animate-spin text-slate-400 shrink-0" />}
         </form>
       </div>
 
@@ -228,12 +228,12 @@ export const MapInner: React.FC<MapInnerProps> = ({ selectedMonth, user }) => {
       </MapContainer>
 
       {/* FABs - Adjusted for mobile visibility */}
-      <div className="map-fabs" style={{ bottom: panelOpen ? 'auto' : 32, top: panelOpen ? 84 : 'auto', transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-        <button className="fab fab-white shadow-lg" onClick={() => setIsSavedOpen(true)}>
-          <Layers size={20} color="#64748B" />
+      <div className="absolute right-4 flex flex-col gap-3 z-[1000] transition-all duration-300" style={{ bottom: panelOpen ? 'auto' : 32, top: panelOpen ? 84 : 'auto' }}>
+        <button className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-200 active:scale-95 transition-transform" onClick={() => setIsSavedOpen(true)}>
+          <Layers size={20} className="text-slate-500" />
         </button>
-        <button className="fab fab-primary shadow-lg" onClick={handleLocate}>
-          <Navigation size={20} color="white" />
+        <button className="w-12 h-12 bg-[#5D0623] text-white rounded-2xl flex items-center justify-center shadow-sm active:scale-95 transition-transform" onClick={handleLocate}>
+          <Navigation size={20} strokeWidth={2.5} />
         </button>
       </div>
 

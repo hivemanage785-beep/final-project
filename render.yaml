@@ -1,7 +1,8 @@
 services:
-  # 1. ML Service (Python FastAPI)
+  # 1. HiveOps ML Service (Python FastAPI)
+  # Provides flora density analysis and predictive yield scoring.
   - type: web
-    name: buzzoff-ml-service
+    name: hiveops-ml-service
     env: python
     plan: free
     region: oregon
@@ -13,27 +14,31 @@ services:
       - key: NODE_ENV
         value: production
 
-  # 2. Backend Service (Node.js Express)
+  # 2. HiveOps Backend Service (Node.js Express)
+  # Core operational API for hive management and traceability.
   - type: web
-    name: buzzoff-backend-service
+    name: hiveops-backend-service
     env: node
     plan: free
     region: oregon
     buildCommand: "cd backend && npm install"
     startCommand: "cd backend && npm start"
+    healthCheckPath: /api/tiles/status
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
       - key: MONGO_URI
-        sync: false # Set this in Render Dashboard after first deploy
-      - key: JWT_SECRET
-        generateValue: true
+        sync: false # REQUIRED: Set your MongoDB Atlas URI in Render Dashboard
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false # REQUIRED: Set your Firebase Service Account JSON in Render Dashboard
       - key: ML_SERVICE_URL
         fromService:
-          name: buzzoff-ml-service
+          name: hiveops-ml-service
           type: web
           property: host
       - key: FRONTEND_URL
-        value: https://buzz-off-bee.vercel.app
+        value: https://hive-ops.vercel.app # Update this to your production frontend URL
+      - key: JWT_SECRET
+        generateValue: true

@@ -11,36 +11,32 @@ export const FieldPage = ({ user }: any) => {
   const next = () => setMonth(m => (m + 1) % 12);
 
   return (
-    <div className="field-page page-enter" style={{ padding: 0 }}>
+    <div className="page-enter bg-[#f8f9fa] flex flex-col h-[100dvh]">
       {/* Top bar */}
-      <div className="field-topbar flex flex-col min-[380px]:flex-row items-start min-[380px]:items-center justify-between gap-4">
+      <div className="flex flex-col min-[420px]:flex-row items-start min-[420px]:items-center justify-between gap-4 p-5 pt-4 bg-white border-b border-slate-100 z-10 relative">
         <div>
-          <h1 className="page-title">Field Analysis</h1>
-          <p className="page-subtitle">Analyze locations for estimated forage suitability and flowering trends</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Field Analysis</h1>
+          <p className="text-xs font-medium text-slate-500 mt-1 max-w-[280px]">Analyze locations for estimated forage suitability and flowering trends</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full min-[380px]:w-auto">
+        <div className="flex items-center justify-between w-full min-[420px]:w-auto gap-3">
           {/* Month picker */}
-          <div className="month-pill">
-            <button className="month-btn" onClick={prev}><ChevronLeft size={16} /></button>
-            <span className="month-name">{MONTHS[month]}</span>
-            <button className="month-btn" onClick={next}><ChevronRight size={16} /></button>
+          <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-xl p-1 shrink-0">
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm active:scale-95 text-slate-500 transition-all" onClick={prev}><ChevronLeft size={16} strokeWidth={2.5} /></button>
+            <span className="text-xs font-bold w-10 text-center text-slate-700">{MONTHS[month]}</span>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm active:scale-95 text-slate-500 transition-all" onClick={next}><ChevronRight size={16} strokeWidth={2.5} /></button>
           </div>
 
           {/* Live badge */}
-          <div style={{
-            display:'flex',alignItems:'center',gap:5,
-            background:'rgba(139,0,0,0.08)',
-            padding:'6px 10px',borderRadius:8
-          }}>
-            <div style={{ width:6,height:6,borderRadius:'50%',background:'#8B0000',animation:'pulse 2s infinite' }} />
-            <span style={{ fontSize:10,fontWeight:800,color:'#8B0000',letterSpacing:'0.06em' }}>LIVE</span>
+          <div className="flex items-center gap-2 bg-rose-50/80 px-3 py-2 rounded-xl border border-rose-100/50 shrink-0">
+            <div className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
+            <span className="text-[10px] font-black text-rose-700 tracking-widest uppercase">LIVE</span>
           </div>
         </div>
       </div>
 
       {/* Map */}
-      <div className="field-map">
+      <div className="flex-1 relative overflow-hidden">
         <MapView selectedMonth={month + 1} user={user} />
       </div>
     </div>

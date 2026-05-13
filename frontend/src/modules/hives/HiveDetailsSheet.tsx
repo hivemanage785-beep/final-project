@@ -8,6 +8,7 @@ import { InspectionTimeline } from './InspectionTimeline';
 import { QRCode } from '../../components/common/QRCode';
 import { storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getTraceUrl } from '../../utils/getTraceUrl';
 
 interface HiveDetailsSheetProps {
   hive: Hive | null;
@@ -227,7 +228,12 @@ export const HiveDetailsSheet: React.FC<HiveDetailsSheetProps> = ({ hive, isOpen
                 <QrCode size={16} className="text-[#5D0623]" /> Hive Traceability QR
               </div>
               <div className="flex items-center gap-4">
-                <QRCode value={`${window.location.origin}/trace/${hive.id}`} size={96} />
+                <div className="flex flex-col items-center">
+                  <QRCode value={getTraceUrl(hive.id!)} size={96} />
+                  <p className="mt-2 text-[8px] font-mono text-slate-400 select-all break-all max-w-[96px] text-center">
+                    {getTraceUrl(hive.id!)}
+                  </p>
+                </div>
                 <div className="flex-1">
                   <p className="text-xs text-gray-500 mb-2">Scan to view hive data publicly. Attach this QR to the physical hive box.</p>
                   <button 

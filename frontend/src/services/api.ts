@@ -70,19 +70,28 @@ api.interceptors.response.use(
       }
     } 
     
-    // If it's a 401 and we ALREADY retried, check why the backend is still rejecting
+    // If it's a 401 and we ALREADY retried, check the server's error message
+    // before taking any destructive action.
     if (error.response?.status === 401 && originalRequest._retry) {
-        const serverError = error.response?.data?.error || 'Unknown';
-        console.error(`❌ [API RESPONSE] Persistent 401 after retry. Server says: ${serverError}`);
-        
-        // If the server explicitly says the token is expired or verification failed even after refresh,
-        // it might be a clock skew issue or a real invalid session.
-        // We will do a final check of auth state before blowing it away.
-        if (auth.currentUser) {
-            console.error("🚫 [API RESPONSE] Even a fresh token was rejected. Session is likely corrupted or project mismatch. Logging out.");
-            await auth.signOut();
-            window.location.href = '/login?reason=verification_failure';
-        }
+      const serverError = (error.response?.data?.error || '').toLowerCase();
+
+      // Only force-logout if the server explicitly confirms the token is invalid.
+      // Do NOT logout on transient 401s from cold starts, rate limits, or misrouted
+      // public-endpoint requests (e.g. trace page before Firebase initializes).
+      const isConfirmedTokenInvalid =
+        serverError.includes('expired') ||
+        serverError.includes('revoked') ||
+        serverError.includes('invalid token') ||
+        serverError.includes('id token');
+
+      if (auth.currentUser && isConfirmedTokenInvalid) {
+        console.error(`❌ [API RESPONSE] Confirmed token rejection ("${serverError}"). Logging out.`);
+        await auth.signOut();
+        window.location.href = '/login?reason=verification_failure';
+      } else {
+        // Transient or unrelated 401 — surface as error, do not destroy session
+        console.warn(`⚠️ [API RESPONSE] Persistent 401 but not confirmed token expiry. Not logging out. Server: "${serverError || 'No message'}"`);  
+      }
     }
     
     // console.error(`❌ [API ERROR] ${error.response?.status} - ${error.config?.url}:`, error.response?.data);
