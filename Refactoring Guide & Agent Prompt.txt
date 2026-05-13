@@ -1,0 +1,143 @@
+﻿Backend Restructuring Guide & Agent Prompt
+This document contains the exact target folder structure for your Buzz-Off backend and a ready-to-use prompt. Feed the prompt below into your AI coding assistant (Cursor, Windsurf, etc.) to have it automatically refactor your code.
+1. Target Detailed Folder Structure
+This is the strict Modular Monolith structure the AI will aim for.
+backend/
+├── src/
+│   ├── api/
+│   │   ├── index.js                  # Main API router mounting v1
+│   │   └── v1/                       # ALL files here must end in .routes.js
+│   │       ├── admin.routes.js
+│   │       ├── alerts.routes.js
+│   │       ├── allocate.routes.js
+│   │       ├── auth.routes.js
+│   │       ├── farmer.routes.js
+│   │       ├── feedback.routes.js
+│   │       ├── harvest.routes.js
+│   │       ├── hive.routes.js
+│   │       ├── inspection.routes.js
+│   │       ├── ndvi.routes.js
+│   │       ├── request.routes.js
+│   │       ├── score.routes.js
+│   │       ├── simulate.routes.js
+│   │       ├── suggestion.routes.js
+│   │       ├── sync.routes.js
+│   │       ├── tile.routes.js
+│   │       └── trace.routes.js
+│   │
+│   ├── modules/                      # Domain-driven modules (Controller, Service, Model)
+│   │   ├── admin/
+│   │   │   └── admin.controller.js
+│   │   ├── allocation/
+│   │   │   ├── allocate.controller.js
+│   │   │   └── allocation.service.js
+│   │   ├── auth/
+│   │   │   └── auth.controller.js
+│   │   ├── core/                     # ONLY shared DTOs & Schemas. Move services out!
+│   │   │   ├── dtos/index.js
+│   │   │   └── BaseSchemas.model.js
+│   │   ├── farmer/
+│   │   │   ├── farmer.controller.js
+│   │   │   ├── farmerDiscovery.controller.js
+│   │   │   └── farmer.model.js       # Renamed from Farmer.model.js
+│   │   ├── feedback/
+│   │   │   ├── feedback.controller.js
+│   │   │   └── feedbackLog.model.js
+│   │   ├── harvest/
+│   │   │   ├── harvest.controller.js
+│   │   │   ├── harvest.service.js    # Extract QR & Locking logic here
+│   │   │   └── batch.model.js
+│   │   ├── hive/
+│   │   │   ├── hive.controller.js
+│   │   │   ├── hive.service.js       # Extract DB logic here
+│   │   │   └── hive.model.js
+│   │   ├── inspection/
+│   │   │   ├── inspection.controller.js
+│   │   │   ├── inspection.service.js # Extract DB logic here
+│   │   │   └── inspection.model.js
+│   │   ├── location/
+│   │   │   ├── savedLocation.controller.js
+│   │   │   ├── savedLocation.service.js
+│   │   │   └── savedLocation.model.js
+│   │   ├── request/
+│   │   │   ├── requests.controller.js
+│   │   │   ├── request.model.js
+│   │   │   └── contactRequest.model.js
+│   │   ├── score/
+│   │   │   ├── score.controller.js
+│   │   │   └── scoring.service.js    # Moved from core
+│   │   ├── simulation/
+│   │   │   └── simulation.service.js
+│   │   ├── suggestion/
+│   │   │   └── suggestions.controller.js
+│   │   ├── sync/
+│   │   │   └── sync.controller.js
+│   │   ├── tile/
+│   │   │   ├── tile.controller.js
+│   │   │   ├── tileGenerator.js
+│   │   │   └── tile.model.js
+│   │   ├── trace/
+│   │   │   └── trace.controller.js
+│   │   └── user/
+│   │       ├── user.controller.js
+│   │       ├── user.service.js
+│   │       ├── user.model.js
+│   │       └── beekeeper.model.js
+│   │
+│   ├── infrastructure/               # External 3rd party APIs ONLY
+│   │   ├── floraService.js           
+│   │   ├── mlService.js
+│   │   ├── ndviLookup.js
+│   │   ├── ndviService.js
+│   │   └── weatherService.js
+│   │
+│   ├── middlewares/                  # Express middlewares
+│   │   ├── auth.js
+│   │   ├── errorHandler.js
+│   │   ├── rateLimiter.js
+│   │   ├── requestLogger.js
+│   │   └── validate.js
+│   │
+│   ├── common/                       # App-wide utilities
+│   │   ├── cache.js
+│   │   ├── logger.js
+│   │   ├── qrGenerator.js
+│   │   ├── telemetry.js
+│   │   ├── tileUtils.js
+│   │   └── generateTiles.js
+│   │
+│   ├── config/                       # Init setup
+│   │   ├── db.js
+│   │   └── firebase-admin.js
+│   │
+│   ├── app.js                        # Express setup
+│   └── server.js                     # Start server
+
+2. The "Anti-Gravity" AI Agent Prompt
+Copy and paste the text below into your AI assistant's chat or composer (e.g., Cursor Composer / Agent mode). Tell it to execute this step-by-step.
+Copy from here 👇
+Act as an expert Node.js Software Architect. I need you to refactor my Express backend into a strict, scalable Modular Monolith. Execute the following steps one by one. DO NOT break existing functionality. Ensure all relative imports are updated after moving files.
+Step 1: Standardize API Routes
+1. Go to src/api/v1/.
+2. Rename all files to use the .routes.js suffix (e.g., rename hives.js to hive.routes.js, harvests.js to harvest.routes.js, admin.js to admin.routes.js).
+3. Update src/api/v1/index.js to reflect these new file names.
+4. Ensure these files only contain Express Router definitions and middleware attachments. No business logic.
+Step 2: Implement the Service Layer
+Currently, controllers (like hive.controller.js, harvest.controller.js, inspection.controller.js) directly import Mongoose models and call Model.create(), Model.find(), etc.
+1. For every domain in src/modules/ that has a database model, ensure a .service.js file exists (e.g., create hive.service.js, harvest.service.js, inspection.service.js).
+2. Move all database queries (.find, .create, .findOneAndUpdate), external QR generations, and heavy business logic from the .controller.js files into exported functions in their respective .service.js files.
+3. Update the .controller.js files to strictly extract data from req.body/req.query/req.user, call the new Service functions, and return the res.status().json().
+Step 3: Standardize Model Naming
+1. Go through src/modules/.
+2. Rename all Mongoose model files to strictly use camelCase or lowercase with a .model.js suffix (e.g., rename Hive.model.js to hive.model.js, Batch.model.js to batch.model.js, SavedLocation.model.js to savedLocation.model.js).
+3. Fix all imports across the project that reference these renamed files.
+Step 4: Cleanup Infrastructure vs. Core
+1. Delete src/modules/core/flora.service.js and src/modules/core/weather.service.js as they are duplicates of the files in src/infrastructure/.
+2. Move src/modules/core/ml.service.js to src/infrastructure/mlService.js (merge if needed).
+3. Move src/modules/core/scoring.service.js into src/modules/score/scoring.service.js.
+4. The src/modules/core/ folder should now ONLY contain dtos/ and BaseSchemas.model.js. Update all imports referencing the moved services.
+Step 5: Clean up TypeScript leftovers
+1. Convert src/app.ts, src/api/index.ts, and any .ts files inside src/modules/user/ to .js files to match the rest of the ES Modules architecture (since package.json specifies "type": "module").
+2. Ensure Express types are removed and standard JS is used in these files.
+Please execute these changes systematically, updating imports correctly to ensure the application still runs flawlessly.
+👆 Stop copying here
